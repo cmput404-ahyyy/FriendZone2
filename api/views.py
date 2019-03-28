@@ -164,7 +164,7 @@ class PostOfAuth(APIView):
     Requires token authentication.
     """
     paginator= CustomPagination()
-    #permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated,)
     def get_author(self,request):
         try:
             author=Author.objects.get(owner=request.user)
@@ -176,40 +176,7 @@ class PostOfAuth(APIView):
     def get(self,request,format=None):
         search=request.GET.get('author','')
         if search!= '':
-            node=Node.objects.get(user=request.user)
-            friends=Friends.objects.filter(Q(author1_url=search)|Q(author2_url=search))
-            visiblePosts=VisibleToPost.objects.filter(Q(author_url=search)).values('post_id')
-            myfriends=[]
-            filterposts=[]
-            for friend in friends:
-                if friend.author1_url == search:
-                  myfriends.append(friend.author2)
-                elif friend.author2_url == search:
-                  myfriends.append(friend.author1) 
-            for friend in myfriends:
-                post=Post.objects.filter(Q(author=friend)).order_by('publicationDate')
-                if node.shareImages==False:
-                    if post.values('contentType')!="image/png;base64" or post.values('contentType')!="image/jpeg;base64":
-                        page = self.paginator.paginate_queryset(post,request)
-                        serializer=PostSerializer(page,many=True)
-                        filterposts.append(page)
-                else:
-                    page = self.paginator.paginate_queryset(post,request)
-                    filterposts.append(page)
-            for post in visiblePosts:
-                v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
-                if not node.shareImages==False:
-                    if post.values('contentType')!="image/png;base64" or post.values('contentType')!="image/jpeg;base64":
-                        page = self.paginator.paginate_queryset(post,request)
-                        serializer=PostSerializer(page,many=True)
-                        filterposts.append(page)
-                else:
-                    page = self.paginator.paginate_queryset(post,request)
-                    filterposts.append(page)
-            if not node.sharePosts:
-                return Response({"message":"Server Denied your Request"},status=status.HTTP_401_UNAUTHORIZED)
-            return self.paginator.get_paginated_response(serializer.data,'posts')
-
+           return self.get_posts_for_remote(request,search)
         else:
             author=self.get_author(request)
             if author=="error":
@@ -223,7 +190,8 @@ class PostOfAuth(APIView):
                 page = self.paginator.paginate_queryset(v_posts,request)
                 serializer=PostSerializer(page,many=True)
                 posts.append(serializer.data)
-            return self.paginator.get_paginated_response(posts,'posts')
+            serializer=PostSerializer(posts,many=True)
+            return self.paginator.get_paginated_response(serializer.data,'posts')
 
 
     def get_serializer_context(self):
@@ -241,7 +209,67 @@ class PostOfAuth(APIView):
             serializer.create(data,author)
             return Response({"query":"Add Post", "success":True ,"message":"Added a New Post"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+     
+    def get_posts_for_remote(self,request,search):
+        ## getting the remote user node to see if shareposts or shareimages is set 
+        node=Node.objects.get(user=request.user)
+        ## finding friends of the specific remote user that is authenticated
+        friends=Friends.objects.filter(Q(author2_url=search)).values_list('author1')
+        myfriends=list(friends)
+        ## checking the visible to table to check if there are additional posts visible to user
+        filterposts=[]
+        ## getting all posts of those friends found above
+        for friend in myfriends:
+            post=Post.objects.filter(Q(author=friend)).order_by('publicationDate')
+            #filtering posts to check if server admin denies access to images
+            if node.shareImages==False:
+                if post.values('contentType')[0]['contentType']=="image/png;base64" or post.values('contentType')[0]['contentType']=="image/jpeg;base64":
+                    pass
+                else:
+                    page = self.paginator.paginate_queryset(post,request)
+                    serializer=PostSerializer(page,many=True)
+                    filterposts.append(serializer.data)
+            else:
+                page = self.paginator.paginate_queryset(post,request)
+                serializer=PostSerializer(page,many=True)
+                filterposts.append(serializer.data)
+        ##getting permitted posts visible to remote author
+        visiblePosts=VisibleToPost.objects.filter(Q(author_url=search)).values('post_id')
+        for post in visiblePosts:
+            v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
+            if not node.shareImages==False:
+                if v_posts.values('contentType')[0]['contentType']!="image/png;base64" or v_posts.values('contentType')[0]['contentType']!="image/jpeg;base64":
+                     pass
+                else:
+                    page = self.paginator.paginate_queryset(v_posts,request)
+                    serializer=PostSerializer(page,many=True)
+                    filterposts.append(serializer.data)
+            else:
+                page = self.paginator.paginate_queryset(v_posts,request)
+                serializer=PostSerializer(page,many=True)
+                filterposts.append(serializer.data)
+        
+        if not node.sharePosts:
+            return Response({"message":"Server Denied your Request"},status=status.HTTP_401_UNAUTHORIZED)
+        if filterposts:
+            return self.paginator.get_paginated_response(serializer.data,'posts')
+        else:
+            return Response({"query":"posts","success":True,"message":"No posts visible to you"},status=status.HTTP_200_OK)
+    
+    #TODO find friends of friends so that we can send foaf posts to remote server
+    # def find_foaf(self,friends,search):
+    #     FOAFList=[]
+    #     for friend in friends: 
+    #         otherfriendList=[]
+    #         otherfriends= Friends.objects.filter(Q(author_1=friend)| Q(author_2=friend))
+    #         for foaf in otherfriends:
+    #             if foaf.author1 == friend and foaf.author2_url!=search:
+    #                 FOAFList.append(author2)
+    #             elif foaf.author2== fr and foaf.author1_url!=search:
+    #                 FOAFList.append(friend.author1)
+    #     return FOAFList
+            
+        
 
 class PublicPosts(APIView):
     """
@@ -250,12 +278,12 @@ class PublicPosts(APIView):
     """
 
     #permission_classes = (IsAuthenticated,)
-    pagination_class= CustomPagination()
+    paginator= CustomPagination()
     def get(self, request,format=None):
         post = Post.objects.all().filter(permission="P")
         page=self.paginator.paginate_queryset(post,request)
         serializer = PostSerializer(page,many=True)
-        return self.paginator.get_paginated_response(serializers,'posts')
+        return self.paginator.get_paginated_response(serializer.data,'posts')
 
 class ProfileOfAuth(APIView):
     """
@@ -287,7 +315,7 @@ class PostOfAuthors(APIView):
         return author
     
     def get(self, request,pk,format=None):
-        search=request.GET.get('author','')     
+        search=request.GET.get('author','')   
         auth_author=self.get_author(owner=request.user)
         author=self.get_author(author_id=pk)
         if author=="error":
@@ -308,6 +336,7 @@ class PostOfAuthors(APIView):
         else:
             return self.paginator.get_paginated_response(posts,'posts')
 
+    
 
 
 class PostDetails(APIView):
@@ -341,28 +370,34 @@ class PostDetails(APIView):
             return Response({"query":"posts","success":True,"posts":serializer.data},status=status.HTTP_200_OK)
 
     def put(self,request,pk,format=None):
-        author= self.get_author(request)
-        post=self.get_post(pk)
-        if post=="error":
-            return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_200_OK)
-        if author == post.author:
-            data=JSONParser().parse(request)
-            serializer = PostSerializer(post,data=data)
-            if serializer.is_valid():
-                serializer.update(post,data)
-                return Response({"query":"Update Users Post","success":True, "message":"Updated your post"},status=status.HTTP_200_OK)
-            return Response({"query":"Update Users Post","success":True, "message":serializer.errors},status=status.HTTP_200_OK)
+        if(Node.objects.get(user=request.user)):
+            return Response({"message":"sorry you do not have access to this"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
         else:
-            return Response({"query":"Update Users Post","success":False, "message":"Sorry this is not your post to update"}, status=status.HTTP_400_BAD_REQUEST)
+            author= self.get_author(request)
+            post=self.get_post(pk)
+            if post=="error":
+                return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_200_OK)
+            if author == post.author:
+                data=JSONParser().parse(request)
+                serializer = PostSerializer(post,data=data)
+                if serializer.is_valid():
+                    serializer.update(post,data)
+                    return Response({"query":"Update Users Post","success":True, "message":"Updated your post"},status=status.HTTP_200_OK)
+                return Response({"query":"Update Users Post","success":False, "message":serializer.errors},status=status.HTTP_200_OK)
+            else:
+                return Response({"query":"Update Users Post","success":False, "message":"Sorry this is not your post to update"}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self,request,pk,format=None):
-        author=self.get_author(request)
-        post=self.get_post(pk)
-        if author==post.author:
-            post.delete()
-            return Response({"query":"Delete Users Post","success":True, "message":"Deleted your post"},status=status.HTTP_200_OK)
+        if(Node.objects.get(user=request.user)):
+            return Response({"message":"sorry you do not have access to this action"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
         else:
-            return Response({"query":"Delete Users Post","success":False, "message":"Sorry this is not your post to delete"}, status=status.HTTP_400_BAD_REQUEST)
+            author=self.get_author(request)
+            post=self.get_post(pk)
+            if author==post.author:
+                post.delete()
+                return Response({"query":"Delete Users Post","success":True, "message":"Deleted your post"},status=status.HTTP_200_OK)
+            else:
+                return Response({"query":"Delete Users Post","success":False, "message":"Sorry this is not your post to delete"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PostComments(APIView):
@@ -401,19 +436,43 @@ class PostComments(APIView):
             return self.paginator.get_paginated_response(serializer.data,'comment')
 
     def post(self,request,pk,format=None):
-        author=self.get_author(request)
+        data=JSONParser().parse(request)
         post=self.get_post(pk)
         if post=="error":
             return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_404_NOT_FOUND)
-        data=JSONParser().parse(request)
+        try:
+            node=Node.objects.get(user=request.user)
+            if node:
+                if self.remote_can_comment(node,post,data):
+                    #TODO find a better method to do this
+                    author=Author.objects.create(url=data['url'],owner=request.user,userName="remote_user")
+                else:
+                    return Response({"message":"sorry you cannot comment on this post"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        except Node.DoesNotExist:
+            author=self.get_author(request) 
         serializer=CommentSerializer(data=data)
         if serializer.is_valid():
             serializer.create(data,author,post)
             return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
+        return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def remote_can_comment(self,node,post,data):
+        friends=Friends.objects.filter(Q(author1=post.author)& Q(author2_url=data['url'])|Q(author2=post.author)& Q(author1_url=data['url']))
+        if post.permission=="F" and friends:
+            return True
+        elif post.permission=="L":
+            visiblePosts=VisibleToPost.objects.filter(Q(author_url=data['url']) & Q(post=post))
+            if visiblePosts:
+                return True
+            return False
+        elif post.permission=="P":
+            return True
+        # Todo checking if there are friends of friends so that you can allow them to comment
+        # elif post.permission=="FF" and friends:
+        #     set=()
+        #     for friend in friends:
+        else:
+            return False
 
 @api_view(['POST'])
 def send_friend_request(request):
