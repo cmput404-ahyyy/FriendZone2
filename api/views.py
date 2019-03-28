@@ -223,17 +223,18 @@ class PostOfAuth(APIView):
                     if post.values('contentType')!="image/png;base64" or post.values('contentType')!="image/jpeg;base64":
                         page = self.paginator.paginate_queryset(post,request)
                         serializer=PostSerializer(page,many=True)
-                        filterposts.append(page)
+                        filterposts.append(serializer.data)
                 else:
                     page = self.paginator.paginate_queryset(post,request)
-                    filterposts.append(page)
+                    serializer=PostSerializer(page,many=True)
+                    filterposts.append(serializer.data)
             for post in visiblePosts:
                 v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
                 if not node.shareImages==False:
                     if post.values('contentType')!="image/png;base64" or post.values('contentType')!="image/jpeg;base64":
                         page = self.paginator.paginate_queryset(post,request)
                         serializer=PostSerializer(page,many=True)
-                        filterposts.append(page)
+                        filterposts.append(serializer.data)
                 else:
                     page = self.paginator.paginate_queryset(post,request)
                     filterposts.append(page)
@@ -248,14 +249,15 @@ class PostOfAuth(APIView):
             visiblePosts=VisibleToPost.objects.filter(Q(author_url=author.url)| Q(author=author)).values('post_id')
             if not visiblePosts:
                 return Response({"query":"posts","success":True,"message":"No posts visible to you"},status=status.HTTP_200_OK)
+            print("here")
+            print(visiblePosts)
             posts=[]
             for post in visiblePosts:
                 v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
                 page = self.paginator.paginate_queryset(v_posts,request)
                 serializer=PostSerializer(page,many=True)
                 posts.append(serializer.data)
-            serializer=PostSerializer(posts,many=True)
-            return self.paginator.get_paginated_response(serializer.data,'posts')
+            return self.paginator.get_paginated_response(posts,'posts')
 
 
     def get_serializer_context(self):
