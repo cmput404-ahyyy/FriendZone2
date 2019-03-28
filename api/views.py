@@ -10,6 +10,7 @@ from django.utils.timezone import get_current_timezone, make_aware
 from django.core import serializers
 from django.utils.dateparse import parse_datetime
 from rest_framework.permissions import IsAuthenticated
+from django.core.serializers.json import DjangoJSONEncoder
 import sys
 from django.http import JsonResponse
 from django.db.models import Q
@@ -18,6 +19,7 @@ from .pagination import CustomPagination,CommentPagination
 from rest_framework.settings import api_settings
 import json
 from django.utils import timezone
+import requests
 
 class ListAuthors(APIView):
     """
@@ -46,7 +48,7 @@ class ListAuthors(APIView):
             searcher = Author.objects.filter(Q(userName=users_username))
             print("1")
             print(users_username)
-            pple_to_follow = Friends.objects.filter(Q(author1=searcher[0]))
+            pple_to_follow = FriendRequest.objects.filter(Q(from_author=searcher[0]) | Q(to_author=searcher[0]))
             print("here is the searcher")
             print(searcher[0])
             #queryset = queryset.filter(userName=users_search['users_search']).values_list('userName',flat=True)
@@ -61,6 +63,7 @@ class ListAuthors(APIView):
                 print(serializer.data) """
             print("here is the query set")
             print(queryset)
+            print(pple_to_follow)
 
             try:
                 for q in queryset:
@@ -74,40 +77,30 @@ class ListAuthors(APIView):
                 pass
 
             index_to_pop=[]
-            print("pple to follow")
-            print(authors_to_pass)
-            pple_he_is_following=[]
-            if(pple_to_follow):
-                for p in pple_to_follow:
-                    print("two people")
-                    print(p.author1)
-                    print(p.author2)
 
-                    for i in range(len(authors_to_pass)):
-                        print("...")
+            for i in range(len(authors_to_pass)):
+                try:
+                    for p in pple_to_follow:
+                        print("asfasfff")
+                        print(type(p.from_author.userName))
                         print(type(authors_to_pass[i]['userName']))
-                        if(str(p.author2) == authors_to_pass[i]['userName']):
-                            print("CAME IN HERERRERERE")
+                        if(p.from_author.userName==authors_to_pass[i]['userName'] or p.to_author.userName==authors_to_pass[i]['userName']):
                             index_to_pop.append(i)
-
-
-
-                    serializer= FriendsSerializer(p)
-                    pple_he_is_following.append(serializer.data)
-            #for p in pple_to_follow:
-                #serializer = FollowingSerializer(p)
-               # print("here is the followers object")
-                #print(serializer)
+                except AttributeError:
+                    print("Attribute error...but should continue")
 
             for i in reversed(index_to_pop):
                 authors_to_pass.pop(i)
-            print("here is the list")
             print(authors_to_pass)
-            #print(pple_he_is_following)
-            return Response([authors_to_pass,pple_he_is_following])
-        else:
-            serializer = AuthorSerializer(authors,many=True)
-            return Response(serializer.data)
+
+
+
+
+
+
+
+            return Response(authors_to_pass)
+
 
     def get(self,request):
         authors=Author.objects.all().order_by('-pk')
@@ -116,6 +109,44 @@ class ListAuthors(APIView):
 
     def get_serializer_context(self):
         return {"request": self.request}
+
+
+@api_view(['POST'])
+def notifications(request):
+
+    if request.method != 'POST':
+        # invalid method
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    data = JSONParser().parse(request)
+    print("@@@@@@@@@@@@@@@@@")
+    print(data)
+    requester_id = data.get('from_author')
+
+
+    try:
+        author_object = FriendRequest.objects.filter(Q(to_author=requester_id) & Q(accepted=False) & Q(regected=False))
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        print(requester_id)
+        #print(author_object[0])
+        #searcher = Author.objects.filter(Q(userName=users_username))
+
+        author_list=[]
+
+        for a in author_object:
+            print(a.from_author)
+            follower = Author.objects.get(userName=a.from_author)
+            serializer = AuthorSerializer(follower)
+            author_list.append(serializer.data)
+
+
+
+
+    except FriendRequest.DoesNotExist:
+        print("Error;friend filter didn't work")
+    print("*^*&^*&**^*^^*&^&*^*^&*^()*&)(&*(*&()&)(&)(*&)(*&")
+    print(author_list)
+    return Response(author_list)
 
 
 
@@ -176,7 +207,40 @@ class PostOfAuth(APIView):
     def get(self,request,format=None):
         search=request.GET.get('author','')
         if search!= '':
-           return self.get_posts_for_remote(request,search)
+            node=Node.objects.get(user=request.user)
+            friends=Friends.objects.filter(Q(author1_url=search)|Q(author2_url=search))
+            visiblePosts=VisibleToPost.objects.filter(Q(author_url=search)).values('post_id')
+            myfriends=[]
+            filterposts=[]
+            for friend in friends:
+                if friend.author1_url == search:
+                  myfriends.append(friend.author2)
+                elif friend.author2_url == search:
+                  myfriends.append(friend.author1)
+            for friend in myfriends:
+                post=Post.objects.filter(Q(author=friend)).order_by('publicationDate')
+                if node.shareImages==False:
+                    if post.values('contentType')!="image/png;base64" or post.values('contentType')!="image/jpeg;base64":
+                        page = self.paginator.paginate_queryset(post,request)
+                        serializer=PostSerializer(page,many=True)
+                        filterposts.append(page)
+                else:
+                    page = self.paginator.paginate_queryset(post,request)
+                    filterposts.append(page)
+            for post in visiblePosts:
+                v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
+                if not node.shareImages==False:
+                    if post.values('contentType')!="image/png;base64" or post.values('contentType')!="image/jpeg;base64":
+                        page = self.paginator.paginate_queryset(post,request)
+                        serializer=PostSerializer(page,many=True)
+                        filterposts.append(page)
+                else:
+                    page = self.paginator.paginate_queryset(post,request)
+                    filterposts.append(page)
+            if not node.sharePosts:
+                return Response({"message":"Server Denied your Request"},status=status.HTTP_401_UNAUTHORIZED)
+            return self.paginator.get_paginated_response(serializer.data,'posts')
+
         else:
             author=self.get_author(request)
             if author=="error":
@@ -313,9 +377,9 @@ class PostOfAuthors(APIView):
         except Author.DoesNotExist:
             return "error"
         return author
-    
+
     def get(self, request,pk,format=None):
-        search=request.GET.get('author','')   
+        search=request.GET.get('author','')
         auth_author=self.get_author(owner=request.user)
         author=self.get_author(author_id=pk)
         if author=="error":
@@ -474,6 +538,7 @@ class PostComments(APIView):
         else:
             return False
 
+
 @api_view(['POST'])
 def send_friend_request(request):
 
@@ -485,7 +550,10 @@ def send_friend_request(request):
     requester_id = data.get('from_author')
     requestee_id = data.get('to_author')
 
-    """ TODO: check whether there is already an friend request"""
+    # TODO remote part
+    # decomment it later
+    # friend_request_to_remote(data)
+
     """ if yes make friends"""
     try:
         existing_request = FriendRequest.objects.get(to_author=requester_id, from_author=requestee_id)
@@ -524,8 +592,6 @@ def send_friend_request(request):
     temp_dict = {"requester" :requester , "requestee":requestee}
     enroll_following(temp_dict)
 
-    """ TODO: user story => As an author, I want to know if I have friend requests."""
-
     return Response(status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
@@ -550,7 +616,9 @@ def respond_to_friend_request(request):
         requester = Author.objects.get(pk=requester_id)
         requestee = Author.objects.get(pk=requestee_id)
         temp_dict = {"requester" :requestee , "requestee":requester}
-        enroll_following(temp_dict)
+        #enroll_following(temp_dict)
+        make_them_friends(requester_id, requestee_id, existing_request)
+        print("came asfasdfsa")
         return Response(status=status.HTTP_200_OK)
 
     temp_dict = {"from_author" :data.get("from_author") , "to_author":data.get("to_author"), "accepted":data.get("accepted") , "regected":data.get("regected")}
@@ -649,7 +717,14 @@ def make_them_friends(author_one, author_two, existing_request):
     # create instance of Friends
     serializer = FriendsSerializer(data=temp_dict)
     serializer.create(temp_dict)
-    existing_request.delete()
+    #existing_request.delete()
+    temp_dict2 = {"from_author" :existing_request.from_author , "to_author":existing_request.to_author,"accepted" :existing_request.accepted , "regected":existing_request.regected}
+
+    serializer2 = FriendRequestSerializer(data=temp_dict2)
+    serializer2.update(existing_request,temp_dict2)
+
+
+
 
     if serializer.is_valid():
         return Response(serializer.data)
@@ -660,7 +735,7 @@ def enroll_following(validated_data):
     """TODO check duplicate here"""
     instance = Following.objects.filter(follower=validated_data.get("requester"), following=validated_data.get("requestee"))
     if instance.exists():
-        return Response(HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
     # serializer = FollowingSerializer(data=validated_data)
     # serializer.create(validated_data)
     new_instance = Following.objects.create(\
@@ -683,6 +758,33 @@ def unfollow(validated_data):
         return False
     req.delete()
     return True
+
+def friend_request_to_remote(dict_data):
+    # get author
+    # check hostname
+    # if remote
+    # send request to remote
+    # get response
+
+    author_id = dict_data.get("from_author")
+    friend_id = dict_data.get("to_author")
+
+    author_obj = Author.objects.get(pk=author_id)
+    friend_obj = Author.objects.get(pk=friend_id)
+
+    """
+    id, host, displayName, url
+    """
+    author_dict = {"id": author_obj.author_id,"host": author_obj.hostName, "displayName": author_obj.userName, "url": author_obj.url}
+    friend_dict = {"id": friend_obj.author_id,"host": friend_obj.hostName, "displayName": friend_obj.userName, "url": friend_obj.url}
+    full_object = {"query":"friendrequest", "author": author_dict, "friend":friend_dict}
+
+    j_data = json.dumps(full_object, cls=DjangoJSONEncoder)
+    # TODO adpat URL to practical url
+    r = requests.post(url="https://project-cmput404.herokuapp.com/api/friendRequest", data=j_data)
+
+    return r
+
 
 
 
