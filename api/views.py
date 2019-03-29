@@ -240,7 +240,7 @@ class PostOfAuth(APIView):
                     filterposts.append(page)
             if not node.sharePosts:
                 return Response({"message":"Server Denied your Request"},status=status.HTTP_401_UNAUTHORIZED)
-            return self.paginator.get_paginated_response(serializer.data,'posts')
+            return self.paginator.get_paginated_response(filterposts,'posts')
 
         else:
             author=self.get_author(request)
