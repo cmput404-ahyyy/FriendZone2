@@ -712,6 +712,9 @@ def get_friends(request,authorid):
     return Response({"query":"Friends","authors":friends_list},status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+
+
+@api_view(['GET'])
 def check_friendship(request, authorid, authorid2):
     try:
         user1 = Author.objects.get(pk=authorid)

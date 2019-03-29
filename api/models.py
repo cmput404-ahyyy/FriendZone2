@@ -108,6 +108,8 @@ class Image(models.Model):
 
 class Node(models.Model):
     user=models.ForeignKey(User,on_delete=models.CASCADE)
+    endpoint = 'https://cmput404-front-test.herokuapp.com/api/posts'
+    credential = 'yonael_team' + ':' + 'EBXxU&qyW$687cMb%mmB'
     sharePosts=models.BooleanField()
     shareImages=models.BooleanField()
 

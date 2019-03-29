@@ -53,4 +53,6 @@ urlpatterns = [
     path('authors/<authorid>/local_friends/', views.get_friends, name="get_local_friends"),
     # Ask if 2 authors are friends
     path('author/<authorid>/friends/<authorid2>/', views.check_friendship, name='friendship')
+
+    
 ]
