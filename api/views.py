@@ -811,8 +811,9 @@ def friend_request_to_remote(dict_data):
     r = requests.post(url="https://project-cmput404.herokuapp.com/api/friendRequest", data=j_data)
 
     return r
- @api_view(['GET'])
- def remote_posts(request):
+
+@api_view(['GET'])
+def remote_posts(request):
     # try:
     #     author=Author.objects.get(owner=request.user)
     # except Author.DoesNotExist:
