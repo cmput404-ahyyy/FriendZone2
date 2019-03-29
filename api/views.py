@@ -531,22 +531,24 @@ class PostComments(APIView):
 @api_view(['POST'])
 def send_friend_request(request):
 
+   
     if request.method != 'POST':
         # invalid method
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     # insert new entry in database
     data = JSONParser().parse(request)
     remote=False
+    #checking if request is remote
     if data.get('query')=='friendrequest':
-        requester_id = data.get('author').id
-        requestee_id = data.get('friend').id
+        requester_id = data.get('author')['id']
+        requestee_id = data.get('friend')['id']
         requester_id=requester_id.split('/')[-1]
         requestee_id=requestee_id.split('/')[-1]
+        print(requestee_id)
         remote=True
     else:
         requester_id = data.get('from_author')
         requestee_id = data.get('to_author')
-
     # TODO remote part
     # decomment it later
     # friend_request_to_remote(data)
@@ -559,6 +561,7 @@ def send_friend_request(request):
         requestee = Author.objects.get(pk=requestee_id)
         temp_dict = {"requester" :requester , "requestee":requestee}
         enroll_following(temp_dict)
+        
         return make_them_friends(requester_id, requestee_id, existing_request)
     except FriendRequest.DoesNotExist:
         pass
@@ -576,34 +579,36 @@ def send_friend_request(request):
         print("Error: duplicate instances in DB", file=sys.stderr)
 
     """fresh request, implement it"""
-    serializer = FriendRequestSerializer(data=data)
-
-    if serializer.is_valid():
-        serializer.save()
-        response = Response(serializer.data)
-    else:
-        response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    if not remote:
+        serializer = FriendRequestSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            response = Response(serializer.data)
+        else:
+            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #creating author objects for the individuals involved in the request and making a fresh request
     if remote:
         try:
-            requester = Author.objects.get(pk=requester_id)
-        except AuthorDoesNotExist:
-            pass
+            requester = Author.objects.get(pk=requester_id)    
+        except Author.DoesNotExist:
+            requester=Author.objects.create(url=data.get('author')['url'],userName=data.get('author')['displayName'],hostName=data.get('author')['host'])
         try:
-            requestee = Author.objects.get(pk=requestee_id)
-        except AuthorDoesNotExist:
-            pass
-        if not requester:
-            requester_info=requests.get(data.get('author').url)
-            json_data = json.loads(requester.text)
-            requester=Author.object.create(url=json_data['url'],userName=json_data['displayName'],hostName=json_data['host'])
-        if not requestee:
-            requestee_info=request.get(data.get('friend').url)
-            json_data = json.loads(requester.text)
-            requestee=Author.object.create(url=json_data['url'],userName=json_data['displayName'],hostName=json_data['host'])
+            requestee = Author.objects.get(pk=requestee_id)    
+        except Author.DoesNotExist:
+            requestee=Author.objects.create(url=data.get('friend')['url'],userName=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
+        serializer = FriendRequestSerializer(data={"from_author":getattr(requester, "author_id"),
+        "to_author":getattr(requestee, "author_id")})
+        if serializer.is_valid():
+            serializer.save()
+            response = Response(serializer.data)
+        else:
+            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        
     else:
         requester = Author.objects.get(pk=requester_id)
         requestee = Author.objects.get(pk=requestee_id)
+    
     temp_dict = {"requester" :requester , "requestee":requestee}
     enroll_following(temp_dict)
 
