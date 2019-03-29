@@ -207,7 +207,7 @@ class PostOfAuth(APIView):
     def get(self,request,format=None):
         search=request.GET.get('author','')
         if search!= '':
-           self.get_posts_for_remote(request,search)
+           return self.get_posts_for_remote(request,search)
         else:
             author=self.get_author(request)
             if author=="error":
