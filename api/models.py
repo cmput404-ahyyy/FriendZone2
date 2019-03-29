@@ -8,14 +8,14 @@ from rest_framework.reverse import reverse
 
 class Author(models.Model):
     author_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
-    url=models.URLField()
+    url=models.URLField(blank=True)
     firstName=models.CharField(max_length=30,blank=True,null=True)
-    lastName=models.CharField(max_length=30)
-    userName=models.CharField(max_length=30)
-    password=models.CharField(max_length=30)
-    hostName=models.URLField()
+    lastName=models.CharField(max_length=30,blank=True)
+    userName=models.CharField(max_length=30,blank=True)
+    password=models.CharField(max_length=30,blank=True)
+    hostName=models.URLField(blank=True)
     owner=models.ForeignKey(User, on_delete=models.CASCADE,null=True)
-    githubUrl=models.URLField()
+    githubUrl=models.URLField(blank=True)
 
     def __str__(self):
         return self.userName
@@ -89,9 +89,6 @@ class Comment(models.Model):
     contentTypeChoice = (
         ('text/markdown', 'text/markdown'),
         ('text/plain', 'text/plain'),
-        ('application/base64', 'application/base64'),
-        ('image/png;base64', 'image/png;base64'),
-        ('image/jpeg;base64', 'image/jpeg;base64'),
     )
     comment=models.TextField()
     contentType = models.CharField(max_length=32, choices=contentTypeChoice,default='text/plain' )
