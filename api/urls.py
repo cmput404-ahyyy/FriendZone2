@@ -28,7 +28,7 @@ urlpatterns = [
 
     path('notifications/', views.notifications, name="notifications"),
 
-
+    path('remote/author/posts/',views.remote_posts),
     #All posts marked as public on the server
     path('posts/',PublicPosts.as_view(), name='posts'),
     #All posts made by this specific author, visible to authenticated user
