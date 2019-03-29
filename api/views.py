@@ -812,6 +812,17 @@ def friend_request_to_remote(dict_data):
 
     return r
 
+ @api_view(['GET'])
+ def remote_posts(request):
+    # try:
+    #     author=Author.objects.get(owner=request.user)
+    # except Author.DoesNotExist:
+    #         return Response({"message":"cannot find author"},status=status.HTTP_400_BAD_REQUEST)
+
+    url="https://cmput404-front-test.herokuapp.com/api/posts"
+    request=requests.get(url,headers={"Authorization":"Basic eW9uYWVsX3RlYW06RUJYeFUmcXlXJDY4N2NNYiVtbUI=","Content-Type":"application/json"})
+    
+    return Response(request.json())
 
 
 
