@@ -28,6 +28,7 @@ urlpatterns = [
 
     path('notifications/', views.notifications, name="notifications"),
 
+
     #All posts marked as public on the server
     path('posts/',PublicPosts.as_view(), name='posts'),
     #All posts made by this specific author, visible to authenticated user
@@ -49,7 +50,7 @@ urlpatterns = [
     # Get all my friends
     path('authors/<authorid>/friends/', views.get_friends, name="get_global_friends"),
     # Get all my friends
-    path('authors/<authorid>/local_friends/', views.get_friends_local, name="get_local_friends"),
+    path('authors/<authorid>/local_friends/', views.get_friends, name="get_local_friends"),
     # Ask if 2 authors are friends
     path('author/<authorid>/friends/<authorid2>/', views.check_friendship, name='friendship')
 ]

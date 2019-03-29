@@ -207,7 +207,7 @@ class PostOfAuth(APIView):
     def get(self,request,format=None):
         search=request.GET.get('author','')
         if search!= '':
-            self.get_posts_for_remote(request,search)
+           self.get_posts_for_remote(request,search)
         else:
             author=self.get_author(request)
             if author=="error":
@@ -682,7 +682,7 @@ def unfriend(request):
     return Response(status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-def get_friends(request, authorid):
+def get_friends(request,authorid):
     current_user_id = authorid;
 
     try:
@@ -694,9 +694,16 @@ def get_friends(request, authorid):
 
     for friend in friends_queryset:
         if current_user.pk == friend.author1.pk:
-            friends_list.append(friend.author2.author_id)
+            serializer = AuthorSerializer(Author.objects.get(pk=friend.author2.author_id))
+            print("in if condition")
+            print(serializer.data)
+            friends_list.append(serializer.data)
+            
         else:
-            friends_list.append(friend.author1.author_id)
+            serializer = AuthorSerializer(Author.objects.get(pk=friend.author1.author_id))
+            print("in else condition")
+            print(serializer.data)
+            friends_list.append(serializer.data)
     return Response({"query":"Friends","authors":friends_list},status=status.HTTP_200_OK)
 
 @api_view(['GET'])
