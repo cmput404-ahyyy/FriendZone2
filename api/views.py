@@ -149,6 +149,32 @@ def notifications(request):
     return Response(author_list)
 
 
+@api_view(['POST'])
+def get_authors_posts(request):
+    data = JSONParser().parse(request)
+    print("@@@@@@@@@@@@@@@@@")
+    print(data)
+    requester_id = data.get('author_id')
+
+    try:
+        authors_posts_objects = Post.objects.all().filter(author=requester_id)
+    except Exception:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+    authors_posts=[]
+    for post in authors_posts_objects:
+        print("here in the for loop")
+        print(post)
+        serializer = PostSerializer(post)
+        authors_posts.append(serializer.data)
+    print("here are the authors posts")
+    print(authors_posts)
+
+    return Response(authors_posts,status=status.HTTP_200_OK)
+
+
+
+
 
 class AuthorDetails(APIView):
     """
@@ -533,9 +559,9 @@ class PostDetails(APIView):
             return Response({"query":"posts","success":True,"posts":serializer.data},status=status.HTTP_200_OK)
 
     def put(self,request,pk,format=None):
-        if(Node.objects.get(user=request.user)):
-            return Response({"message":"sorry you do not have access to this"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        else:
+       # if(Node.objects.get(user=request.user)):
+       #     return Response({"message":"sorry you do not have access to this"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+       # else:
             author= self.get_author(request)
             post=self.get_post(pk)
             if post=="error":
@@ -551,9 +577,9 @@ class PostDetails(APIView):
                 return Response({"query":"Update Users Post","success":False, "message":"Sorry this is not your post to update"}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self,request,pk,format=None):
-        if(Node.objects.get(user=request.user)):
-            return Response({"message":"sorry you do not have access to this action"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        else:
+       # if(Node.objects.get(user=request.user)):
+       #     return Response({"message":"sorry you do not have access to this action"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+       # else:
             author=self.get_author(request)
             post=self.get_post(pk)
             if author==post.author:
