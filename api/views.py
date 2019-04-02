@@ -213,21 +213,19 @@ class PostOfAuth(APIView):
                 json.dumps(data)
                 resp=requests.post(node.url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
                 token=resp.json()['token']
-                print(token)
                 response=requests.get(node.url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
                 data=response.json()
                 if data.get('query')=='posts':
                     posts=data.get('posts')
                     for post in posts:
                         auth_posts.append(post)
-                serverPosts=self.get_server_posts(author,request)
-                if serverPosts:
-                    newSerializer=list(serverPosts)
-                elif serverPosts==None and len(auth_posts)==0:
-                    return Response({message:"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
+            serverPosts=self.get_server_posts(author,request)
+            if serverPosts:
+                newSerializer=list(serverPosts)
                 for i in auth_posts:
                     newSerializer.append(i)
-            return self.paginator.get_paginated_response(newSerializer,'posts')
+                return self.paginator.get_paginated_response(newSerializer,'posts')
+            return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
 
 
     def get_serializer_context(self):
