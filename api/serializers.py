@@ -193,7 +193,8 @@ class PostSerializer(serializers.ModelSerializer):
             for category in validated_data.get('categories'):
                 categories=Categories.create(post=new_instance,category=category)
         if validated_data.get('permission')=='M':
-            authors=Author.objects.get(author_id=author.author_id)
+            #TODO permitted authors find a way to do this
+            permitted_authors=validated.get('authors')
             visible=VisibleToPost.objects.create(post=new_instance,author=author)
         if validated_data.get('permission')== 'P':
             authors=Author.objects.all()
