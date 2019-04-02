@@ -64,7 +64,7 @@ class Post(models.Model):
     postid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     source = models.URLField(null=True, blank=True)
     origin = models.URLField(null=True, blank=True)
-    contentType = models.CharField(max_length=32, choices=contentTypeChoice,default='text/plain' )
+    contentType = models.CharField(max_length=32, choices=contentTypeChoice)
     publicationDate=models.DateTimeField()
     content=models.TextField()
     title=models.CharField(max_length=50)
@@ -100,7 +100,6 @@ class Comment(models.Model):
     def __str__(self):
         return self.comment
 
-
 class Image(models.Model):
 
     post_id = models.ForeignKey(Post,related_name="post_image", on_delete=models.CASCADE,null=True)
@@ -108,6 +107,9 @@ class Image(models.Model):
 
 class Node(models.Model):
     user=models.ForeignKey(User,on_delete=models.CASCADE)
+    url=models.URLField(blank=True)
+    username=models.CharField(max_length=32, blank=True)
+    password=models.CharField(max_length=32, blank=True)
     sharePosts=models.BooleanField()
     shareImages=models.BooleanField()
 

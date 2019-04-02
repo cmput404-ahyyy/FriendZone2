@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Author, FriendRequest,Friends,Post, Comment,VisibleToPost,Categories, Following,Image,Node
+from .models import Author, FriendRequest,Friends,Post, Comment,VisibleToPost,Categories, Following,Node,Image
 # Register your models here.
 admin.site.register(Author)
 admin.site.register(FriendRequest)
