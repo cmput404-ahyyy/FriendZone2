@@ -52,12 +52,11 @@ class AuthorSerializer(serializers.ModelSerializer):
     firstName=serializers.CharField(required=False)
     lastName=serializers.CharField(required=False)
     username=serializers.CharField(required=False)
-    displayName=username
     hostName=serializers.URLField(read_only=True)
     githubUrl=serializers.URLField(required=False)
     class Meta:
         model = Author
-        fields=['url','author_id','firstName','lastName','username','hostName','githubUrl','displayName']
+        fields=['url','author_id','firstName','lastName','username','hostName','githubUrl']
 
     def update(self, instance, validated_data):
         instance.firstName = validated_data.get('firstName', instance.firstName)
