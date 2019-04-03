@@ -247,8 +247,9 @@ class PostOfAuth(APIView):
                 print(data)
                 if data.get('query')=='posts':
                     posts=data.get('posts')
-                    for post in posts:
-                        auth_posts.append(post)
+                    if posts:
+                        for post in posts:
+                            auth_posts.append(post)
             serverPosts=self.get_server_posts(author,request)
             if serverPosts:
                 newSerializer=list(serverPosts)
