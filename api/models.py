@@ -18,7 +18,7 @@ class Author(models.Model):
     githubUrl=models.URLField(blank=True)
 
     def __str__(self):
-        return self.userName
+        return self.username
     @classmethod
     def get_url(self,obj):
         return str(getattr(obj,'hostName'))+"/api/authors/"+str(getattr(obj,'author_id'))
