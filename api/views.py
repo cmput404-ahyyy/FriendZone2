@@ -231,20 +231,20 @@ class PostOfAuth(APIView):
         if search!= '':
            return self.send_posts_for_remote(request,search)
         else:
-            nodes=Node.objects.all()
-            author=self.get_author(request)
-            auth_posts=[]
-            for node in nodes:
-                data={'username':'team1','password':'garnett21'}
-                json.dumps(data)
-                resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
-                token=resp.json()['token']
-                response=requests.get(node.node_url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
-                data=response.json()
-                if data.get('query')=='posts':
-                    posts=data.get('posts')
-                    for post in posts:
-                        auth_posts.append(post)
+            # nodes=Node.objects.all()
+            # author=self.get_author(request)
+            # auth_posts=[]
+            # for node in nodes:
+            #     data={'username':'team1','password':'garnett21'}
+            #     json.dumps(data)
+            #     resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
+            #     token=resp.json()['token']
+            #     response=requests.get(node.node_url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
+            #     data=response.json()
+            #     if data.get('query')=='posts':
+            #         posts=data.get('posts')
+            #         for post in posts:
+            #             auth_posts.append(post)
             serverPosts=self.get_server_posts(author,request)
             if serverPosts:
                 newSerializer=list(serverPosts)
