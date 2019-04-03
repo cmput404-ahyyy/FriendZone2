@@ -196,7 +196,7 @@ class PostSerializer(serializers.ModelSerializer):
                 Image.objects.create(post_id=new_instance,img=image['base64'])
         if validated_data.get('permission')=='M':
             #TODO permitted authors find a way to do this
-            permitted_authors=validated.get('authors')
+            permitted_authors=validated_data.get('authors')
             visible=VisibleToPost.objects.create(post=new_instance,author=author)
         if validated_data.get('permission') == 'F':
             friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
