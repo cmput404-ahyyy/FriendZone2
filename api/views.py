@@ -232,7 +232,7 @@ class PostOfAuth(APIView):
            return self.send_posts_for_remote(request,search)
         else:
             # nodes=Node.objects.all()
-            # author=self.get_author(request)
+            author=self.get_author(request)
             # auth_posts=[]
             # for node in nodes:
             #     data={'username':'team1','password':'garnett21'}
