@@ -184,7 +184,7 @@ class PostSerializer(serializers.ModelSerializer):
     images=ImageSerializer(many=True,source="post_image",required=False)
     class Meta:
         model = Post
-        fields = ['postid' ,'publicationDate','title','source' ,'origin','contentType','author','content','permission','comments','categories','unlisted','visibleTo','image']
+        fields = ['postid' ,'publicationDate','title','source' ,'origin','contentType','author','content','permission','comments','categories','unlisted','visibleTo','images']
 
     def create(self, validated_data,author,request):
         new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now(),contentType=validated_data.get('contentType'))
