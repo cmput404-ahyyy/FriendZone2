@@ -187,7 +187,7 @@ class PostSerializer(serializers.ModelSerializer):
         fields = ['postid' ,'publicationDate','title','source' ,'origin','contentType','author','content','permission','comments','categories','unlisted','visibleTo','images']
 
     def create(self, validated_data,author,request):
-        new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now(),contentType=validated_data.get('contentType'),origin=request.get_host())
+        new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now(),contentType=validated_data.get('contentType'),origin="http://"+request.get_host())
         if validated_data.get('categories'):
             for category in validated_data.get('categories'):
                 categories=Categories.create(post=new_instance,category=category)
