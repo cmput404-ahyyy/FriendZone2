@@ -240,10 +240,7 @@ class PostOfAuth(APIView):
             #     data={'username':'team1','password':'garnett21'}
             #     json.dumps(data)
             #     resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
-<<<<<<< HEAD
             #     print(resp)
-=======
->>>>>>> 641f280354df7ee6d24a99982182850bcebbb79b
             #     token=resp.json()['token']
             #     response=requests.get(node.node_url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
             #     data=response.json()
@@ -257,10 +254,7 @@ class PostOfAuth(APIView):
                 return self.paginator.get_paginated_response(newSerializer,'posts')
             else:
                 return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
-<<<<<<< HEAD
-=======
 
->>>>>>> 641f280354df7ee6d24a99982182850bcebbb79b
 
 
     def get_serializer_context(self):
