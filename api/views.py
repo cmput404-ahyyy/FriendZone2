@@ -458,7 +458,7 @@ class PublicPosts(APIView):
     Requires token authentication.
     """
 
-    permission_classes = (IsAuthenticated,)
+    #permission_classes = (IsAuthenticated,)
     paginator= CustomPagination()
     def get(self, request,format=None):
         post=Post.objects.filter(permission="P")
@@ -645,28 +645,33 @@ class PostComments(APIView):
         post=self.get_post(pk)
         if post=="error":
             return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_404_NOT_FOUND)
-        try:
-            node=Node.objects.get(user=request.user)
-            if node:
-                if self.remote_can_comment(node,post,data):
-                    #TODO find a better method to do this
-                    author=Author.objects.create(url=data['url'],owner=request.user,username="remote_user")
+        if data.get('query')=="addComment":
+            response=requests.get(data.get('author'))
+            if response:
+                if self.remote_can_comment(post,response.url):
+                    found_author,created=Author.objects.get_or_create(url=resp['url'],author_id=resp['author_id'],hostName=resp['hostName'],username=resp['username'],firstName=resp['firstName'],lastName=resp['lastName'])
+                    comment= Comment.objects.create(comment=data.get('comment'),author=found_author,published=timezone.now(),postid=post,contentType= data.get('contentType'))
+                    return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
                 else:
                     return Response({"message":"sorry you cannot comment on this post"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        except Node.DoesNotExist:
-            author=self.get_author(request) 
-        serializer=CommentSerializer(data=data)
-        if serializer.is_valid():
-            serializer.create(data,author,post)
+            else:
+                return Response({"query":"addComment", "success":"Fail","message":"please use a author url"},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            author=self.get_author(owner=request.user)
+            if author=="error":
+                return Response({"message":"authenticated author not found"}, status=status.HTTP_400_BAD_REQUEST)
+            serializer=CommentSerializer(data=data)
+            if serializer.is_valid():
+                serializer.create(data,author,post)
             return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
         return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
-    def remote_can_comment(self,node,post,data):
-        friends=Friends.objects.filter(Q(author1=post.author)& Q(author2_url=data['url'])|Q(author2=post.author)& Q(author1_url=data['url']))
+    def remote_can_comment(self,post,data):
+        friends=Friends.objects.filter(Q(author1=post.author)& Q(author2_url=data)|Q(author2=post.author)& Q(author1_url=data))
         if post.permission=="F" and friends:
             return True
         elif post.permission=="L":
-            visiblePosts=VisibleToPost.objects.filter(Q(author_url=data['url']) & Q(post=post))
+            visiblePosts=VisibleToPost.objects.filter(Q(author_url=data) & Q(post=post))
             if visiblePosts:
                 return True
             return False
