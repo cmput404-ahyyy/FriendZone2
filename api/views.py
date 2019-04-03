@@ -237,9 +237,9 @@ class PostOfAuth(APIView):
             for node in nodes:
                 data={'username':'team1','password':'garnett21'}
                 json.dumps(data)
-                resp=requests.post(node.url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
+                resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
                 token=resp.json()['token']
-                response=requests.get(node.url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
+                response=requests.get(node.node_url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
                 data=response.json()
                 if data.get('query')=='posts':
                     posts=data.get('posts')
