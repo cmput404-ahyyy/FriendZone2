@@ -43,9 +43,9 @@ class ListAuthors(APIView):
             #if(test):
             #    print(test[0].author1)
             #print(queryset)
-            queryset=Author.objects.filter(Q(userName__startswith=users_search))
+            queryset=Author.objects.filter(Q(username__startswith=users_search))
             print("1")
-            searcher = Author.objects.filter(Q(userName=users_username))
+            searcher = Author.objects.filter(Q(username=users_username))
             print("1")
             print(users_username)
             pple_to_follow = FriendRequest.objects.filter(Q(from_author=searcher[0]) | Q(to_author=searcher[0]))
@@ -68,7 +68,7 @@ class ListAuthors(APIView):
             try:
                 for q in queryset:
                     print(q)
-                    author = Author.objects.get(userName=q)
+                    author = Author.objects.get(username=q)
 
                     serializer = AuthorSerializer(author)
                     print(serializer.data)
@@ -82,9 +82,9 @@ class ListAuthors(APIView):
                 try:
                     for p in pple_to_follow:
                         print("asfasfff")
-                        print(type(p.from_author.userName))
-                        print(type(authors_to_pass[i]['userName']))
-                        if(p.from_author.userName==authors_to_pass[i]['userName'] or p.to_author.userName==authors_to_pass[i]['userName']):
+                        print(type(p.from_author.username))
+                        print(type(authors_to_pass[i]['username']))
+                        if(p.from_author.username==authors_to_pass[i]['username'] or p.to_author.username==authors_to_pass[i]['username']):
                             index_to_pop.append(i)
                 except AttributeError:
                     print("Attribute error...but should continue")
@@ -135,7 +135,7 @@ def notifications(request):
 
         for a in author_object:
             print(a.from_author)
-            follower = Author.objects.get(userName=a.from_author)
+            follower = Author.objects.get(username=a.from_author)
             serializer = AuthorSerializer(follower)
             author_list.append(serializer.data)
 
@@ -635,7 +635,7 @@ class PostComments(APIView):
             if node:
                 if self.remote_can_comment(node,post,data):
                     #TODO find a better method to do this
-                    author=Author.objects.create(url=data['url'],owner=request.user,userName="remote_user")
+                    author=Author.objects.create(url=data['url'],owner=request.user,username="remote_user")
                 else:
                     return Response({"message":"sorry you cannot comment on this post"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
         except Node.DoesNotExist:
@@ -728,11 +728,11 @@ def send_friend_request(request):
         try:
             requester = Author.objects.get(pk=requester_id)    
         except Author.DoesNotExist:
-            requester=Author.objects.create(url=data.get('author')['url'],userName=data.get('author')['displayName'],hostName=data.get('author')['host'])
+            requester=Author.objects.create(url=data.get('author')['url'],username=data.get('author')['displayName'],hostName=data.get('author')['host'])
         try:
             requestee = Author.objects.get(pk=requestee_id)    
         except Author.DoesNotExist:
-            requestee=Author.objects.create(url=data.get('friend')['url'],userName=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
+            requestee=Author.objects.create(url=data.get('friend')['url'],username=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
         serializer = FriendRequestSerializer(data={"from_author":getattr(requester, "author_id"),
         "to_author":getattr(requestee, "author_id")})
         if serializer.is_valid():
@@ -939,8 +939,8 @@ def friend_request_to_remote(dict_data):
     """
     id, host, displayName, url
     """
-    author_dict = {"id": author_obj.author_id,"host": author_obj.hostName, "displayName": author_obj.userName, "url": author_obj.url}
-    friend_dict = {"id": friend_obj.author_id,"host": friend_obj.hostName, "displayName": friend_obj.userName, "url": friend_obj.url}
+    author_dict = {"id": author_obj.author_id,"host": author_obj.hostName, "displayName": author_obj.username, "url": author_obj.url}
+    friend_dict = {"id": friend_obj.author_id,"host": friend_obj.hostName, "displayName": friend_obj.username, "url": friend_obj.url}
     full_object = {"query":"friendrequest", "author": author_dict, "friend":friend_dict}
 
     j_data = json.dumps(full_object, cls=DjangoJSONEncoder)
