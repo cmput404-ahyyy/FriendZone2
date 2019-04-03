@@ -61,7 +61,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance.firstName = validated_data.get('firstName', instance.firstName)
         instance.lastName = validated_data.get('lastName', instance.lastName)
-        instance.userName = validated_data.get('username', instance.username)
+        instance.username = validated_data.get('username', instance.username)
         instance.githubUrl = validated_data.get('githubUrl', instance.githubUrl)
         instance.save()
         return instance
