@@ -248,10 +248,10 @@ class PostOfAuth(APIView):
             serverPosts=self.get_server_posts(author,request)
             if serverPosts:
                 newSerializer=list(serverPosts)
-                for i in auth_posts:
-                    newSerializer.append(i)
                 return self.paginator.get_paginated_response(newSerializer,'posts')
-            return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
+            else:
+                return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
+
 
 
     def get_serializer_context(self):
