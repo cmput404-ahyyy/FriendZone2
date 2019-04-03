@@ -7,8 +7,8 @@ class CustomPagination(PageNumberPagination):
     max_page_size=1000
     def get_paginated_response(self,data,query):
         response={"query":query,
-                  "count":len(data),
-                  "size":self.page_size,
+                  "count":self.page.paginator.count,
+                  "size":self.page.paginator.per_page,
                    query:data,
                 }
         if self.get_next_link():
@@ -25,8 +25,8 @@ class CommentPagination(PageNumberPagination):
     def get_paginated_response(self, data,query):
         response= {
             'query': query,
-            'count': self.page.paginator.count,
-            'size': self.page_size,
+            'count': self.self.page.paginator.count,
+            'size': self.page.paginator.per_page,
             'next': self.get_next_link(),
             'previous': self.get_previous_link(),
             'comments': data
