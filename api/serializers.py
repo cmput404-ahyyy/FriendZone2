@@ -51,17 +51,17 @@ class LoginSerializer(serializers.Serializer):
 class AuthorSerializer(serializers.ModelSerializer):
     firstName=serializers.CharField(required=False)
     lastName=serializers.CharField(required=False)
-    userName=serializers.CharField(required=False)
+    username=serializers.CharField(required=False)
     hostName=serializers.URLField(read_only=True)
     githubUrl=serializers.URLField(required=False)
     class Meta:
         model = Author
-        fields=['url','author_id','firstName','lastName','userName','hostName','githubUrl']
+        fields=['url','author_id','firstName','lastName','username','hostName','githubUrl']
 
     def update(self, instance, validated_data):
         instance.firstName = validated_data.get('firstName', instance.firstName)
         instance.lastName = validated_data.get('lastName', instance.lastName)
-        instance.userName = validated_data.get('userName', instance.userName)
+        instance.userName = validated_data.get('username', instance.username)
         instance.githubUrl = validated_data.get('githubUrl', instance.githubUrl)
         instance.save()
         return instance

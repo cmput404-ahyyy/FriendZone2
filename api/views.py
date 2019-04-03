@@ -223,6 +223,8 @@ class PostOfAuth(APIView):
     paginator= CustomPagination()
     permission_classes = (IsAuthenticated,)
     def get_author(self,request):
+        print("this is request")
+        print(request.user)
         return get_object_or_404(Author,owner=request.user)
 
 
@@ -233,25 +235,25 @@ class PostOfAuth(APIView):
         else:
             nodes=Node.objects.all()
             author=self.get_author(request)
-            auth_posts=[]
-            for node in nodes:
-                data={'username':'team1','password':'garnett21'}
-                json.dumps(data)
-                resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
-                token=resp.json()['token']
-                response=requests.get(node.node_url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
-                data=response.json()
-                if data.get('query')=='posts':
-                    posts=data.get('posts')
-                    for post in posts:
-                        auth_posts.append(post)
+            # auth_posts=[]
+            # for node in nodes:
+            #     data={'username':'team1','password':'garnett21'}
+            #     json.dumps(data)
+            #     resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
+            #     print(resp)
+            #     token=resp.json()['token']
+            #     response=requests.get(node.node_url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
+            #     data=response.json()
+            #     if data.get('query')=='posts':
+            #         posts=data.get('posts')
+            #         for post in posts:
+            #             auth_posts.append(post)
             serverPosts=self.get_server_posts(author,request)
             if serverPosts:
                 newSerializer=list(serverPosts)
-                for i in auth_posts:
-                    newSerializer.append(i)
                 return self.paginator.get_paginated_response(newSerializer,'posts')
-            return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
+            else:
+                return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
 
 
     def get_serializer_context(self):
@@ -337,7 +339,7 @@ class PostOfAuth(APIView):
     #TODO find friends of friends so that we can find FOAF posts
     def find_foaf(self,friends,search):
         direct_friends=[]
-        print(friends)
+        print("im here")
         foaf=[]
         if type(search)==str:
             remote_author=Author.objects.get(url=search)
