@@ -228,13 +228,15 @@ class PostOfAuth(APIView):
         return get_object_or_404(Author,owner=request.user)
 
 
+    
+
     def get(self,request,format=None):
         search=request.GET.get('author','')
-        print(search)
-        if search!='':
-           return self.send_posts_for_remote(request,search)
+        if search!= '':
+            return self.send_posts_for_remote(request,search)
         else:
             nodes=Node.objects.all()
+            print(nodes)
             author=self.get_author(request)
             auth_posts=[]
             for node in nodes:
@@ -242,6 +244,7 @@ class PostOfAuth(APIView):
                 json.dumps(data)
                 resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
                 token=resp.json()['token']
+                print(token)
                 response=requests.get(node.node_url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
                 data=response.json()
                 print(data)
@@ -250,7 +253,9 @@ class PostOfAuth(APIView):
                     if posts:
                         for post in posts:
                             auth_posts.append(post)
+            
             serverPosts=self.get_server_posts(author,request)
+            
             if serverPosts:
                 newSerializer=list(serverPosts)
                 for i in auth_posts:
@@ -260,6 +265,9 @@ class PostOfAuth(APIView):
                 return self.paginator.get_paginated_response(auth_posts,'posts')
             else:
                 return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
+                        
+                    
+                
 
 
     def get_serializer_context(self):
@@ -280,7 +288,6 @@ class PostOfAuth(APIView):
     def send_posts_for_remote(self,request,search):
         ## getting the remote user node to see if shareposts or shareimages is set 
         node=get_object_or_404(Node, user=request.user)
-        
         ## finding friends of the remote user that is authenticated
         myfriends=[]
         friends=Friends.objects.filter(Q(author1_url=search)|Q(author2_url=search))
@@ -349,14 +356,11 @@ class PostOfAuth(APIView):
     def find_foaf(self,friends,search,node):
         direct_friends=[]
         foaf=[]
-        print(search)
         if type(search)==str:
-            data={"username":node.username,"password":node.password}
-            resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
-            token=resp.json()['token']
             request=requests.get(search,headers={"Content-Type":"application/json"})
+            print(request.status_code==200)
             if request.status_code==200:
-                remote_author=Author.objects.get_or_create(username=request.json()['username'],hostName=request.json()['hostName'],githubUrl=request.json()['githubUrl'],url=request.json()['url'])
+                remote_author=Author.objects.get_or_create(userName=request.json()['username'],hostName=request.json()['hostName'],githubUrl=request.json()['githubUrl'],url=request.json()['url'])
             else:
                 return "Problem with request"
         else:
@@ -364,6 +368,7 @@ class PostOfAuth(APIView):
         direct_friends.append(remote_author)
         for friend in friends:
             if friend[0]['author1']:
+                print("Im")
                 author=Author.objects.get(author_id=friend[0]['author1'])
             else:
                 author=Author.objects.get(author_id=friend[0]['author2'])
@@ -375,6 +380,7 @@ class PostOfAuth(APIView):
                     foaf.append(getattr(indirectfriend,'author2'))
                 else:
                     foaf.append(getattr(indirectfriend,'author1'))
+            print("Here")
         for friend in foaf:
             if friend in direct_friends:
                 foaf.remove(friend)
@@ -400,6 +406,7 @@ class PostOfAuth(APIView):
             return True  
     #retrieves all posts visble to author on host server
     def get_server_posts(self,author,request):
+        print('Im here')
         filterposts=set()
         myfriends=[]
         friends=Friends.objects.filter(Q(author1=author)|Q(author2=author))
@@ -446,10 +453,13 @@ class PostOfAuth(APIView):
         else:
             pass
         if filterposts:
+            
             serializer=PostSerializer(filterposts,many=True)
             return serializer.data
         else:
             return None
+             
+
              
 
 class PublicPosts(APIView):
@@ -649,7 +659,7 @@ class PostComments(APIView):
             response=requests.get(data.get('author'))
             if response:
                 if self.remote_can_comment(post,response.url):
-                    found_author,created=Author.objects.get_or_create(url=resp['url'],author_id=resp['author_id'],hostName=resp['hostName'],username=resp['username'],firstName=resp['firstName'],lastName=resp['lastName'])
+                    found_author,created=Author.objects.get_or_create(url=response['url'],author_id=response['author_id'],hostName=response['hostName'],username=response['username'],firstName=response['firstName'],lastName=response['lastName'])
                     comment= Comment.objects.create(comment=data.get('comment'),author=found_author,published=timezone.now(),postid=post,contentType= data.get('contentType'))
                     return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
                 else:
