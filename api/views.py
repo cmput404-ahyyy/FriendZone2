@@ -657,7 +657,7 @@ class PostComments(APIView):
             else:
                 return Response({"query":"addComment", "success":"Fail","message":"please use a author url"},status=status.HTTP_400_BAD_REQUEST)
         else:
-            author=self.get_author(owner=request.user)
+            author=self.get_author(request)
             if author=="error":
                 return Response({"message":"authenticated author not found"}, status=status.HTTP_400_BAD_REQUEST)
             serializer=CommentSerializer(data=data)
