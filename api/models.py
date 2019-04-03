@@ -11,7 +11,7 @@ class Author(models.Model):
     url=models.URLField(blank=True)
     firstName=models.CharField(max_length=30,blank=True,null=True)
     lastName=models.CharField(max_length=30,blank=True)
-    userName=models.CharField(max_length=30,blank=True)
+    username=models.CharField(max_length=30,blank=True)
     password=models.CharField(max_length=30,blank=True)
     hostName=models.URLField(blank=True)
     owner=models.ForeignKey(User, on_delete=models.CASCADE,null=True)
