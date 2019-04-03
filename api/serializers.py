@@ -211,10 +211,10 @@ class PostSerializer(serializers.ModelSerializer):
             print(friends)
             for friend in friends:
                 print(friend.author2.hostName,request.get_host())
-                if friend.author1 == author and friend.author2.hostName.replace("http://","") == request.get_host() and friend.author1.hostName.replace("http://","") == request.get_host():
+                if friend.author1 == author and friend.author2.hostName.replace("https://","") == request.get_host() and friend.author1.hostName.replace("https://","") == request.get_host():
                     print("here")
                     new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2,author_url=friend.author2.url)
-                elif friend.author2 == author and friend.author1.hostName.replace("http://","") == request.get_host() and friend.author2.hostName.replace("http://","")==request.get_host():
+                elif friend.author2 == author and friend.author1.hostName.replace("https://","") == request.get_host() and friend.author2.hostName.replace("https://","")==request.get_host():
                     print("overhere")
                     new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1,author_url=friend.author1.url)
         return new_instance
