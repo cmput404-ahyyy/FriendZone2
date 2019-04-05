@@ -110,7 +110,7 @@ class Node(models.Model):
     user=models.ForeignKey(User,on_delete=models.CASCADE)
     node_url=models.URLField()
     username=models.CharField(max_length=32, blank=True)
-    password=models.CharField(max_length=32, blank=True)
+    password=models.CharField(max_length=50,blank=True)
     sharePosts=models.BooleanField()
     shareImages=models.BooleanField()
 

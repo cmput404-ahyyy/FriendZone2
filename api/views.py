@@ -223,46 +223,47 @@ class PostOfAuth(APIView):
     paginator= CustomPagination()
     permission_classes = (IsAuthenticated,)
     def get_author(self,request):
-        print("this is request")
-        print(request.user)
         return get_object_or_404(Author,owner=request.user)
 
 
     
 
     def get(self,request,format=None):
-        search=request.GET.get('author','')
-        if search!= '':
+        search=request.headers.get('Auth-User')
+        if search is not None :
             return self.send_posts_for_remote(request,search)
         else:
             nodes=Node.objects.all()
-            print(nodes)
             author=self.get_author(request)
             auth_posts=[]
             for node in nodes:
-                data={'username':'team1','password':'garnett21'}
-                json.dumps(data)
-                resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
-                token=resp.json()['token']
-                print(token)
-                response=requests.get(node.node_url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
-                data=response.json()
-                print(data)
-                if data.get('query')=='posts':
-                    posts=data.get('posts')
-                    if posts:
-                        for post in posts:
-                            auth_posts.append(post)
-            
+                try:
+                    data={"username":node.username,'password':node.password}
+                    resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
+                    token=resp.json()['token']
+                    print(token)
+                    print(node.node_url)
+                    response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
+                    data=response.json()
+                    print(data)
+                    if data.get('query')=='posts':
+                        posts=data.get('posts')
+                        if posts:
+                            for post in posts:
+                                auth_posts.append(post)
+                except requests.ConnectionError as e:
+                    print(e)
+                    continue
             serverPosts=self.get_server_posts(author,request)
-            
+            print(serverPosts)
             if serverPosts:
                 newSerializer=list(serverPosts)
                 for i in auth_posts:
                     newSerializer.append(i)
                 return self.paginator.get_paginated_response(newSerializer,'posts')
             elif auth_posts:
-                return self.paginator.get_paginated_response(auth_posts,'posts')
+                
+                return Response(auth_posts,status=status.HTTP_200_OK)
             else:
                 return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
                         
@@ -300,8 +301,8 @@ class PostOfAuth(APIView):
         ## Get All public posts visible to authenticated remote user
         public_posts=Post.objects.filter(Q(permission="P"))
         if public_posts:
+            postsList=[]
             for post in public_posts:
-                postsList=[]
                 if self.checkNodePermission(node,getattr(post, 'contentType')):
                     postsList.append(post)
             page = self.paginator.paginate_queryset(postsList,request)
@@ -360,7 +361,7 @@ class PostOfAuth(APIView):
             request=requests.get(search,headers={"Content-Type":"application/json"})
             print(request.status_code==200)
             if request.status_code==200:
-                remote_author=Author.objects.get_or_create(userName=request.json()['username'],hostName=request.json()['hostName'],githubUrl=request.json()['githubUrl'],url=request.json()['url'])
+                remote_author=Author.objects.get_or_create(username=request.json()['username'],hostName=request.json()['hostName'],githubUrl=request.json()['githubUrl'],url=request.json()['url'])
             else:
                 return "Problem with request"
         else:
@@ -420,9 +421,12 @@ class PostOfAuth(APIView):
             page = self.paginator.paginate_queryset(myPosts,request)
             filterposts.update(page)
         public_posts=Post.objects.filter(Q(permission="P"))
+        print(public_posts)
         if public_posts:
             page = self.paginator.paginate_queryset(public_posts,request)
+           
             filterposts.update(page)
+
         search=author
         foaf=self.find_foaf(myfriends,search,node="")
         #Get all FOAF posts visible to user
@@ -453,7 +457,6 @@ class PostOfAuth(APIView):
         else:
             pass
         if filterposts:
-            
             serializer=PostSerializer(filterposts,many=True)
             return serializer.data
         else:
