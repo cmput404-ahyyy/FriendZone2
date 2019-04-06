@@ -2,6 +2,8 @@ from api.models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost
 from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer,VisibleToPostSerializer,CategoriesSerializer, FollowingSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view,permission_classes
+from rest_framework.authentication import BasicAuthentication
+from knox.auth import TokenAuthentication
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
@@ -233,27 +235,28 @@ class PostOfAuth(APIView):
         if search is not None :
             return self.send_posts_for_remote(request,search)
         else:
-            nodes=Node.objects.all()
+            # nodes=Node.objects.all()
             author=self.get_author(request)
             auth_posts=[]
-            for node in nodes:
-                try:
-                    data={"username":node.username,'password':node.password}
-                    resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
-                    token=resp.json()['token']
-                    print(token)
-                    print(node.node_url)
-                    response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
-                    data=response.json()
-                    print(data)
-                    if data.get('query')=='posts':
-                        posts=data.get('posts')
-                        if posts:
-                            for post in posts:
-                                auth_posts.append(post)
-                except requests.ConnectionError as e:
-                    print(e)
-                    continue
+            # for node in nodes:
+                # try:
+                    #data={"username":node.username,'password':node.password}
+                    #resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
+                    # token=resp.json()['token']
+                    #print(token)
+                    #print(node.node_url)
+                    #print(author.url)
+                    #response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
+                    #data=response.json()
+                    #print(data)
+                    # #if data.get('query')=='posts':
+                    #     posts=data.get('posts')
+                        # if posts:
+                        #     for post in posts:
+                        #         auth_posts.append(post)
+                # except requests.ConnectionError as e:
+                #     print(e)
+                #     continue
             serverPosts=self.get_server_posts(author,request)
             print(serverPosts)
             if serverPosts:
@@ -366,25 +369,20 @@ class PostOfAuth(APIView):
                 return "Problem with request"
         else:
             remote_author=Author.objects.get(author_id=search.author_id)
-        direct_friends.append(remote_author)
         for friend in friends:
-            if friend[0]['author1']:
-                print("Im")
+            if 'author1' in friend[0]:
                 author=Author.objects.get(author_id=friend[0]['author1'])
             else:
                 author=Author.objects.get(author_id=friend[0]['author2'])
-            
             indirectfriends=Friends.objects.filter(Q(author1=author)|Q(author2=author))
-            direct_friends.append(author)
+            foaf.append(author)
             for indirectfriend in indirectfriends:
                 if getattr(indirectfriend,'author1')==author:
                     foaf.append(getattr(indirectfriend,'author2'))
                 else:
                     foaf.append(getattr(indirectfriend,'author1'))
             print("Here")
-        for friend in foaf:
-            if friend in direct_friends:
-                foaf.remove(friend)
+        foaf=set(foaf)
         return foaf
    
    
@@ -407,12 +405,11 @@ class PostOfAuth(APIView):
             return True  
     #retrieves all posts visble to author on host server
     def get_server_posts(self,author,request):
-        print('Im here')
         filterposts=set()
         myfriends=[]
         friends=Friends.objects.filter(Q(author1=author)|Q(author2=author))
         if friends:
-            if friends.values('author1')[0]['author1']== author:
+            if friends.values('author1')[0]['author1']== author.author_id:
                 myfriends.append(friends.values('author2'))
             else:
                 myfriends.append(friends.values('author1'))
@@ -424,12 +421,11 @@ class PostOfAuth(APIView):
         print(public_posts)
         if public_posts:
             page = self.paginator.paginate_queryset(public_posts,request)
-           
             filterposts.update(page)
-
         search=author
         foaf=self.find_foaf(myfriends,search,node="")
         #Get all FOAF posts visible to user
+        print(foaf)
         for friend in foaf:
             posts=Post.objects.filter(Q(author=friend) & Q(permission='FF')).order_by('publicationDate')
             if posts:
@@ -437,7 +433,7 @@ class PostOfAuth(APIView):
                 filterposts.update(page)
         # getting all post of friends with authenticated user
         for friend in myfriends:
-            if friend[0]['author1']:
+            if 'author1' in friend[0]:
                 posts=Post.objects.filter(Q(author=friend[0]['author1'])).order_by('publicationDate')
             else:
                 posts=Post.objects.filter(Q(author=friend[0]['author2'])).order_by('publicationDate')
@@ -470,8 +466,7 @@ class PublicPosts(APIView):
     API view to list all public posts
     Requires token authentication.
     """
-
-    #permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated,)
     paginator= CustomPagination()
     def get(self, request,format=None):
         post=Post.objects.filter(permission="P")
