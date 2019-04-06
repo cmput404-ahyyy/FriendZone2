@@ -715,29 +715,29 @@ def send_friend_request(request):
         requester_id = data.get('from_author')
         requestee_id = data.get('to_author')
 
-    try:
-        requestee = Author.objects.get(pk=requestee_id)
-        response = False
-    except Author.DoesNotExist:
-        send_to_remote = True
-        # 1st login to remote
-        response = False
-        nodes=Node.objects.all()
-        for node in nodes:
-            if node.url in url_:
-                token = connect_a_node(node)
-                response = requests.get(node.url+'/api/author/' + requestee_id + '/',headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
-            if response:
-                # create requestee object
-                raw_author = JSONParser().parse(response)
-                url_ = raw_author.get("url")
-                pk_ = raw_author.get("pk")
-                firstName_ = raw_author.get("firstName")
-                lastName_ = raw_author.get("lastName")
-                userName_ = raw_author.get("userName")
-                hostName_ = raw_author.get("hostName")
-                githubUrl_ = raw_author.get("githubUrl")
-                requestee = Author.objects.create(url=url + '/author/' + pk_ + '/',userName=userName_,hostName=hostName_, lastName=lastName_, firstName=firstName_, githubUrl=githubUrl_)
+    # try:
+    #     requestee = Author.objects.get(pk=requestee_id)
+    #     response = False
+    # except Author.DoesNotExist:
+    #     send_to_remote = True
+    #     # 1st login to remote
+    #     response = False
+    #     nodes=Node.objects.all()
+    #     for node in nodes:
+    #         if node.url in url_:
+    #             token = connect_a_node(node)
+    #             response = requests.get(node.url+'/api/author/' + requestee_id + '/',headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
+    #         if response:
+    #             # create requestee object
+    #             raw_author = JSONParser().parse(response)
+    #             url_ = raw_author.get("url")
+    #             pk_ = raw_author.get("pk")
+    #             firstName_ = raw_author.get("firstName")
+    #             lastName_ = raw_author.get("lastName")
+    #             userName_ = raw_author.get("userName")
+    #             hostName_ = raw_author.get("hostName")
+    #             githubUrl_ = raw_author.get("githubUrl")
+    #             requestee = Author.objects.create(url=url + '/author/' + pk_ + '/',userName=userName_,hostName=hostName_, lastName=lastName_, firstName=firstName_, githubUrl=githubUrl_)
 
         # requestee = Author.objects.create(url=data.get('friend')['url'],userName=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
 
@@ -746,6 +746,7 @@ def send_friend_request(request):
         existing_request = FriendRequest.objects.get(to_author=requester_id, from_author=requestee_id)
         """make them friends"""
         requester = Author.objects.get(pk=requester_id)
+        requestee = Author.objects.get(pk=requestee_id)
 
         temp_dict = {"requester" :requester , "requestee":requestee}
         enroll_following(temp_dict)
@@ -768,8 +769,8 @@ def send_friend_request(request):
 
     """fresh request, implement it"""
     if not remote:
-        if response:
-            data['to_author'] = requestee.pk
+        # if response:
+        #     data['to_author'] = requestee.pk
         serializer = FriendRequestSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
