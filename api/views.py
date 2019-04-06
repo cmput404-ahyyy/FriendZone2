@@ -238,25 +238,25 @@ class PostOfAuth(APIView):
             # nodes=Node.objects.all()
             author=self.get_author(request)
             auth_posts=[]
-            # for node in nodes:
-                # try:
-                    #data={"username":node.username,'password':node.password}
-                    #resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
-                    # token=resp.json()['token']
-                    #print(token)
-                    #print(node.node_url)
-                    #print(author.url)
-                    #response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
-                    #data=response.json()
-                    #print(data)
-                    # #if data.get('query')=='posts':
-                    #     posts=data.get('posts')
-                        # if posts:
-                        #     for post in posts:
-                        #         auth_posts.append(post)
-                # except requests.ConnectionError as e:
-                #     print(e)
-                #     continue
+            for node in nodes:
+                try:
+                    data={"username":node.username,'password':node.password}
+                    resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
+                    token=resp.json()['token']
+                    print(token)
+                    print(node.node_url)
+                    print(author.url)
+                    response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
+                    data=response.json()
+                    print(data)
+                    #if data.get('query')=='posts':
+                        posts=data.get('posts')
+                        if posts:
+                            for post in posts:
+                                auth_posts.append(post)
+                except requests.ConnectionError as e:
+                    print(e)
+                    continue
             serverPosts=self.get_server_posts(author,request)
             print(serverPosts)
             if serverPosts:
