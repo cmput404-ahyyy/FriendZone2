@@ -717,6 +717,7 @@ def send_friend_request(request):
 
     try:
         requestee = Author.objects.get(pk=requestee_id)
+        response = False
     except Author.DoesNotExist:
         send_to_remote = True
         # 1st login to remote
