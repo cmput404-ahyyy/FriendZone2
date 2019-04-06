@@ -11,14 +11,14 @@ class Author(models.Model):
     url=models.URLField(blank=True)
     firstName=models.CharField(max_length=30,blank=True,null=True)
     lastName=models.CharField(max_length=30,blank=True)
-    userName=models.CharField(max_length=30,blank=True)
+    username=models.CharField(max_length=30,blank=True)
     password=models.CharField(max_length=30,blank=True)
     hostName=models.URLField(blank=True)
     owner=models.ForeignKey(User, on_delete=models.CASCADE,null=True)
     githubUrl=models.URLField(blank=True)
 
     def __str__(self):
-        return self.userName
+        return self.username
     @classmethod
     def get_url(self,obj):
         return str(getattr(obj,'hostName'))+"/api/authors/"+str(getattr(obj,'author_id'))
@@ -106,10 +106,11 @@ class Image(models.Model):
     img = models.TextField()
 
 class Node(models.Model):
+    
     user=models.ForeignKey(User,on_delete=models.CASCADE)
-    url=models.URLField(blank=True)
+    node_url=models.URLField()
     username=models.CharField(max_length=32, blank=True)
-    password=models.CharField(max_length=32, blank=True)
+    password=models.CharField(max_length=50,blank=True)
     sharePosts=models.BooleanField()
     shareImages=models.BooleanField()
 
