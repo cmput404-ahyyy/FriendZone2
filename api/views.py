@@ -370,14 +370,13 @@ class PostOfAuth(APIView):
         else:
             remote_author=Author.objects.get(author_id=search.author_id)
         for friend in friends:
-            if 'author1' in friend[0]:
-                author=Author.objects.get(author_id=friend[0]['author1'])
-            else:
-                author=Author.objects.get(author_id=friend[0]['author2'])
-            indirectfriends=Friends.objects.filter(Q(author1=author)|Q(author2=author))
-            foaf.append(author)
+            print("line 373")
+            print(friend.author_id)
+
+            indirectfriends=Friends.objects.filter(Q(author1=friend)|Q(author2=friend))
+            foaf.append(friend)
             for indirectfriend in indirectfriends:
-                if getattr(indirectfriend,'author1')==author:
+                if getattr(indirectfriend,'author1')==friend:
                     foaf.append(getattr(indirectfriend,'author2'))
                 else:
                     foaf.append(getattr(indirectfriend,'author1'))
@@ -409,10 +408,15 @@ class PostOfAuth(APIView):
         myfriends=[]
         friends=Friends.objects.filter(Q(author1=author)|Q(author2=author))
         if friends:
-            if friends.values('author1')[0]['author1']== author.author_id:
-                myfriends.append(friends.values('author2'))
-            else:
-                myfriends.append(friends.values('author1'))
+            print("line 412")
+            for i in friends:
+                print(author.author_id)
+                print(i.author1.author_id)
+                if(i.author1.author_id==author.author_id):
+                    myfriends.append(i.author2)
+
+                else:
+                    myfriends.append(i.author1)
         myPosts=Post.objects.filter(Q(author_id=author))
         if myPosts:
             page = self.paginator.paginate_queryset(myPosts,request)
@@ -433,10 +437,7 @@ class PostOfAuth(APIView):
                 filterposts.update(page)
         # getting all post of friends with authenticated user
         for friend in myfriends:
-            if 'author1' in friend[0]:
-                posts=Post.objects.filter(Q(author=friend[0]['author1'])).order_by('publicationDate')
-            else:
-                posts=Post.objects.filter(Q(author=friend[0]['author2'])).order_by('publicationDate')
+            posts=Post.objects.filter(Q(author=friend)).order_by('publicationDate')
             if posts:
                 page = self.paginator.paginate_queryset(posts,request)
                 filterposts.update(page)
@@ -704,6 +705,7 @@ def send_friend_request(request):
     remote=False
     #checking if request is remote
     if data.get('query')=='friendrequest':
+        print("this is line 707")
         # DEBUG get(id) instead of [id]
         requester_id = data.get('author')['id']
         requestee_id = data.get('friend')['id']

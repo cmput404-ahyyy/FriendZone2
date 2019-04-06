@@ -40,9 +40,9 @@ urlpatterns = [
     #Just retrieves comments to that specific post
     path('posts/<pk>/comments/',PostComments.as_view(), name="post_comments"),
     #Just sends a friend request
-    path('friendRequest/',views.send_friend_request, name="friend_request"),
+    path('friendRequest/',views.send_friend_request, name="send_friend_request"),
     # result of a friend request
-    path('friendResult/', views.send_friend_request, name="respond_frequest"),
+    path('friendResult/', views.respond_to_friend_request, name="respond_to_friend_request"),
     # Just un-befriend(unfollow) an author
     path('unfriend/', views.unfriend, name="unbefriend"),
     # # Get all my friends
