@@ -162,7 +162,7 @@ def get_authors_posts(request):
         authors_posts_objects = Post.objects.all().filter(author=requester_id)
     except Exception:
         return Response(status=status.HTTP_400_BAD_REQUEST)
-    
+
     authors_posts=[]
     for post in authors_posts_objects:
         print("here in the for loop")
@@ -228,7 +228,7 @@ class PostOfAuth(APIView):
         return get_object_or_404(Author,owner=request.user)
 
 
-    
+
 
     def get(self,request,format=None):
         search=request.headers.get('Auth-User')
@@ -265,13 +265,13 @@ class PostOfAuth(APIView):
                     newSerializer.append(i)
                 return self.paginator.get_paginated_response(newSerializer,'posts')
             elif auth_posts:
-                
+
                 return Response(auth_posts,status=status.HTTP_200_OK)
             else:
                 return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
-                        
-                    
-                
+
+
+
 
 
     def get_serializer_context(self):
@@ -288,9 +288,9 @@ class PostOfAuth(APIView):
             serializer.create(data,author,request)
             return Response({"query":"Add Post", "success":True ,"message":"Added a New Post"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-     
+
     def send_posts_for_remote(self,request,search):
-        ## getting the remote user node to see if shareposts or shareimages is set 
+        ## getting the remote user node to see if shareposts or shareimages is set
         node=get_object_or_404(Node, user=request.user)
         ## finding friends of the remote user that is authenticated
         myfriends=[]
@@ -355,7 +355,7 @@ class PostOfAuth(APIView):
             return self.paginator.get_paginated_response(serializer.data,'posts')
         else:
             return Response({"query":"posts","success":True,"message":"No posts visible to you"},status=status.HTTP_200_OK)
-    
+
     #TODO find friends of friends so that we can find FOAF posts
     def find_foaf(self,friends,search,node):
         direct_friends=[]
@@ -384,11 +384,11 @@ class PostOfAuth(APIView):
             print("Here")
         foaf=set(foaf)
         return foaf
-   
-   
+
+
     def checkNodePermission(self, node,contentType):
     ### Helper function to determine whether post satisfies node permissions
-        
+
         if node.shareImages==False and node.sharePosts==True:
             if contentType=="image/png;base64" or contentType =="image/jpeg;base64":
                 return False
@@ -402,7 +402,7 @@ class PostOfAuth(APIView):
         elif node.sharePosts==False and node.shareImages==False:
             return False
         else:
-            return True  
+            return True
     #retrieves all posts visble to author on host server
     def get_server_posts(self,author,request):
         filterposts=set()
@@ -457,9 +457,9 @@ class PostOfAuth(APIView):
             return serializer.data
         else:
             return None
-             
 
-             
+
+
 
 class PublicPosts(APIView):
     """
@@ -550,7 +550,7 @@ class PostOfAuthors(APIView):
         else:
             return self.paginator.get_paginated_response(posts,'posts')
 
-    
+
 
 
 class PostDetails(APIView):
@@ -673,7 +673,7 @@ class PostComments(APIView):
                 serializer.create(data,author,post)
             return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
         return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     def remote_can_comment(self,post,data):
         friends=Friends.objects.filter(Q(author1=post.author)& Q(author2_url=data)|Q(author2=post.author)& Q(author1_url=data))
         if post.permission=="F" and friends:
@@ -695,8 +695,7 @@ class PostComments(APIView):
 
 @api_view(['POST'])
 def send_friend_request(request):
-
-   
+    send_to_remote = False
     if request.method != 'POST':
         # invalid method
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -705,6 +704,7 @@ def send_friend_request(request):
     remote=False
     #checking if request is remote
     if data.get('query')=='friendrequest':
+        # DEBUG get(id) instead of [id]
         requester_id = data.get('author')['id']
         requestee_id = data.get('friend')['id']
         requester_id=requester_id.split('/')[-1]
@@ -714,19 +714,41 @@ def send_friend_request(request):
     else:
         requester_id = data.get('from_author')
         requestee_id = data.get('to_author')
-    # TODO remote part
-    # decomment it later
-    # friend_request_to_remote(data)
 
-    """ if yes make friends"""
+    try:
+        requestee = Author.objects.get(pk=requestee_id)
+    except Author.DoesNotExist:
+        send_to_remote = True
+        # 1st login to remote
+        response = False
+        nodes=Node.objects.all()
+        for node in nodes:
+            if node.url in url_:
+                token = connect_a_node(node)
+                response = requests.get(node.url+'/api/author/' + requestee_id + '/',headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
+            if response:
+                # create requestee object
+                raw_author = JSONParser().parse(response)
+                url_ = raw_author.get("url")
+                pk_ = raw_author.get("pk")
+                firstName_ = raw_author.get("firstName")
+                lastName_ = raw_author.get("lastName")
+                userName_ = raw_author.get("userName")
+                hostName_ = raw_author.get("hostName")
+                githubUrl_ = raw_author.get("githubUrl")
+                requestee = Author.objects.create(url=url + '/author/' + pk_ + '/',userName=userName_,hostName=hostName_, lastName=lastName_, firstName=firstName_, githubUrl=githubUrl_)
+
+        # requestee = Author.objects.create(url=data.get('friend')['url'],userName=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
+
+    """make friends"""
     try:
         existing_request = FriendRequest.objects.get(to_author=requester_id, from_author=requestee_id)
         """make them friends"""
         requester = Author.objects.get(pk=requester_id)
-        requestee = Author.objects.get(pk=requestee_id)
+
         temp_dict = {"requester" :requester , "requestee":requestee}
         enroll_following(temp_dict)
-        
+
         return make_them_friends(requester_id, requestee_id, existing_request)
     except FriendRequest.DoesNotExist:
         pass
@@ -745,6 +767,8 @@ def send_friend_request(request):
 
     """fresh request, implement it"""
     if not remote:
+        if response:
+            data['to_author'] = requestee.pk
         serializer = FriendRequestSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
@@ -754,13 +778,17 @@ def send_friend_request(request):
     #creating author objects for the individuals involved in the request and making a fresh request
     if remote:
         try:
-            requester = Author.objects.get(pk=requester_id)    
+            requester = Author.objects.get(pk=requester_id)
         except Author.DoesNotExist:
             requester=Author.objects.create(url=data.get('author')['url'],username=data.get('author')['displayName'],hostName=data.get('author')['host'])
         try:
-            requestee = Author.objects.get(pk=requestee_id)    
+            requestee = Author.objects.get(pk=requestee_id)
         except Author.DoesNotExist:
-            requestee=Author.objects.create(url=data.get('friend')['url'],username=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
+            # send_to_remote = True
+            requestee=Author.objects.create(url=data.get('friend')['url'],userName=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
+
+        # if send_to_remote:
+        #     friend_request_to_remote(requester, requestee)
         serializer = FriendRequestSerializer(data={"from_author":getattr(requester, "author_id"),
         "to_author":getattr(requestee, "author_id")})
         if serializer.is_valid():
@@ -769,15 +797,39 @@ def send_friend_request(request):
         else:
             response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        
+
     else:
         requester = Author.objects.get(pk=requester_id)
         requestee = Author.objects.get(pk=requestee_id)
-    
+
     temp_dict = {"requester" :requester , "requestee":requestee}
     enroll_following(temp_dict)
 
     return Response(status=status.HTTP_201_CREATED)
+
+def friend_request_to_remote(author_obj, friend_obj):
+    # get author
+    # check hostname
+    # if remote
+    # send request to remote
+    # get response
+    """
+    id, host, displayName, url
+    """
+    author_dict = {"id": author_obj.author_id,"host": author_obj.hostName, "displayName": author_obj.userName, "url": author_obj.url}
+    friend_dict = {"id": friend_obj.author_id,"host": friend_obj.hostName, "displayName": friend_obj.userName, "url": friend_obj.url}
+    full_object = {"query":"friendrequest", "author": author_dict, "friend":friend_dict}
+
+    j_data = json.dumps(full_object, cls=DjangoJSONEncoder)
+    # TODO adpat URL to practical url
+    url_ = friend_obj.hostName + 'api/' + 'friendrequest/'
+    nodes=Node.objects.all()
+    for node in nodes:
+        if node.url in url_:
+            token = connect_a_node(node)
+            r = requests.post(url=url_, data=j_data, headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
+
+    return r
 
 @api_view(['POST'])
 def respond_to_friend_request(request):
@@ -868,7 +920,7 @@ def get_friends(request,authorid):
             print("in if condition")
             print(serializer.data)
             friends_list.append(serializer.data)
-            
+
         else:
             serializer = AuthorSerializer(Author.objects.get(pk=friend.author1.author_id))
             print("in else condition")
@@ -986,13 +1038,13 @@ def remote_posts(request):
 
     url="https://cmput404-front-test.herokuapp.com/api/posts"
     request=requests.get(url,headers={"Authorization":"Basic eW9uYWVsX3RlYW06RUJYeFUmcXlXJDY4N2NNYiVtbUI=","Content-Type":"application/json"})
-    
+
     return Response(request.json())
 
-
-
-
-
-
-
-
+""" input: node object ; output: Token"""
+def connect_a_node(node):
+    data={'username':'team1','password':'garnett21'}
+    json.dumps(data)
+    resp=requests.post(node.url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
+    token=resp.json()['token']
+    return token
