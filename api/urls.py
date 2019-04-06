@@ -42,7 +42,7 @@ urlpatterns = [
     #Just sends a friend request
     path('friendRequest/',views.send_friend_request, name="friend_request"),
     # result of a friend request
-    path('friendResult/', views.respond_to_friend_request, name="respond_frequest"),
+    path('friendResult/', views.send_friend_request, name="respond_frequest"),
     # Just un-befriend(unfollow) an author
     path('unfriend/', views.unfriend, name="unbefriend"),
     # # Get all my friends
