@@ -709,8 +709,8 @@ def send_friend_request(request):
     if data.get('query')=='friendrequest':
         print("this is line 707")
         # DEBUG get(id) instead of [id]
-        requester_id = data.get('author')['id']
-        requestee_id = data.get('friend')['id']
+        requester_id = data['author']['id']
+        requestee_id = data['friend']['id']
         requester_id=requester_id.split('/')[-1]
         requestee_id=requestee_id.split('/')[-1]
         print(requestee_id)
@@ -786,12 +786,12 @@ def send_friend_request(request):
         try:
             requester = Author.objects.get(pk=requester_id)
         except Author.DoesNotExist:
-            requester=Author.objects.create(url=data.get('author')['url'],username=data.get('author')['displayName'],hostName=data.get('author')['host'])
+            requester=Author.objects.create(url=data['author']['url'],username=data['author']['displayName'],hostName=data['author']['host'])
         try:
             requestee = Author.objects.get(pk=requestee_id)
         except Author.DoesNotExist:
             # send_to_remote = True
-            requestee=Author.objects.create(url=data.get('friend')['url'],userName=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
+            requestee=Author.objects.create(url=data['friend']['url'],userName=data['friend']['displayName'],hostName=data['friend']['host'])
 
         # if send_to_remote:
         #     friend_request_to_remote(requester, requestee)
@@ -1038,19 +1038,24 @@ def friend_request_to_remote(dict_data):
 @api_view(['POST'])
 def remote_friendRequest(request):
     data=JSONParser().parse(request)
-    host_url=data.get('host')+'/api'
+    print(data['friend']['host'])
+    host_url=data['friend']['host']+'api'
+    print(host_url)
     nodes=Node.objects.all()
+    print(nodes)
     node=None
     for node in nodes:
         if node.node_url==host_url:
             node=node
    # try:
     login_data={"username":node.username,'password':node.password}
+    print(login_data)
     resp=requests.post(node.node_url+'/auth/login',data=json.dumps(login_data),headers={"Content-Type":"application/json"})
     token=resp.json()['token']
-    request_data={'from_author':data.get('from_author'),'to_author':data.get('to_author')}
-    response=requests.post(node.node_url+'/friendRequest/',data=request_data,headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
-    if(response.status_code==200):
+    print(node.node_url)
+    response=requests.post(node.node_url+'/friendRequest/',data=json.dumps(data),headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+    print(type(response.status_code))
+    if(response.status_code==201):
         return Response({'query':'send remote friend request','message':"successfully sent"},status=status.HTTP_200_OK)
     #except requests.ConnectionError as e:
      #   print(e)
