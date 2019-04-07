@@ -348,7 +348,7 @@ class PostOfAuth(APIView):
                 else:
                     pass
         except Author.DoesNotExist:
-            continue
+            pass
 
         ## Get All public posts visible to authenticated remote user
         public_posts=Post.objects.filter(Q(permission="P"))
