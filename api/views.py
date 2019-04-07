@@ -249,7 +249,7 @@ class PostOfAuth(APIView):
                         response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
                         data=response.json()
                     else:
-                        response=requests.get(node.node_url+"posts/", auth=HTTPBasicAuth(node.username, node.password))
+                        response=requests.get(node.node_url+"posts/", auth=(node.username, node.password))
                         data =response.json()
                     if data.get('query')=='posts':
                             posts=data.get('posts')
