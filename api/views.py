@@ -240,20 +240,22 @@ class PostOfAuth(APIView):
             auth_posts=[]
             for node in nodes:
                 try:
-                    data={"username":node.username,'password':node.password}
-                    resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
-                    token=resp.json()['token']
-                    print(token)
-                    print(node.node_url)
-                    print(author.url)
-                    response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
-                    data=response.json()
-                    print(data)
+                    if(node.username =="team1"):
+                        data={"username":node.username,'password':node.password}
+                        resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
+                        token=resp.json()['token']
+                        print(node.node_url)
+                        print(author.url)
+                        response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
+                        data=response.json()
+                    else:
+                        response=requests.get(node.node_url+"posts/", auth=HTTPBasicAuth(node.username, node.password))
+                        data =response.json()
                     if data.get('query')=='posts':
-                        posts=data.get('posts')
-                        if posts:
-                            for post in posts:
-                                auth_posts.append(post)
+                            posts=data.get('posts')
+                            if posts:
+                                for post in posts:
+                                    auth_posts.append(post)
                 except requests.ConnectionError as e:
                     print(e)
                     continue
