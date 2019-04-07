@@ -1054,7 +1054,7 @@ def remote_authors(request):
         except requests.ConnectionError as e:
             print(e)
             continue
-    return Response({authors},status=status.HTTP_200_OK)
+    return Response(authors,status=status.HTTP_200_OK)
     
 """ input: node object ; output: Token"""
 def connect_a_node(node):
