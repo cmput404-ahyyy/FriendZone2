@@ -5,6 +5,7 @@ from django.test import Client
 from django.urls import reverse
 from django.db.models import Q
 import json
+import uuid
 """"""
 from api.models import Author, FriendRequest, Friends,Post,Comment
 from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer, FollowingSerializer
@@ -22,7 +23,12 @@ from django.utils import timezone
 import pytz
 """"""
 
-from .views import enroll_following, make_them_friends, unfollow, friend_request_to_remote
+from .views import enroll_following, make_them_friends, unfollow, friend_request_to_remote, send_friend_request
+
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 # Create your tests here.
 def create_author(f_name="A", l_name="B", u_name="101", pwd=101):
@@ -89,7 +95,29 @@ class LoginViewTest(TestCase):
         # print(11111111111,response, 222222222222)
         self.assertEqual(response.status_code, 401)
 
-class FriendRequestViewTests(TestCase):
+
+
+class FriendRequestViewTests(APITestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+        # for i in range(5,7):
+        self.uuid1 = "06335e84-2872-4914-8c5d-3ed07d2a2f16"
+        self.uuid2 = "06335e84-2872-4914-8c5d-3ed07d2a2f17"
+        Author.objects.create(pk=uuid.UUID(self.uuid1), username='ftest1', password='test1111')
+        Author.objects.create(pk=uuid.UUID(self.uuid2), username='ftest2', password='test1111')
+        self.init_request = {
+            'from_author': uuid.UUID(self.uuid1),
+            'to_author': uuid.UUID(self.uuid2)
+        }
+
+    def test_send_request(self):
+        # view = send_friend_request()
+        request = self.factory.post(reverse('api:send_friend_request'), data=self.init_request, format='json')
+        response = send_friend_request(request)
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        # self.
+
     # def test_create_first_frequest(self):
     #     a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
     #     a1.save()
@@ -199,17 +227,17 @@ class FriendResultViewTests(TestCase):
 class UnfriendViewTests(TestCase):
     pass
 
-class RemoteServerTests(TestCase):
-    def test_friend_request_to_remote(self):
-        print("TEST REMOTE")
-        a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
-        a1.save()
-        a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
-        a2.save()
-        temp_dict = {"from_author":a1.author_id, "to_author":a2.author_id}
-        # print(temp_dict)
-        friend_request_to_remote(temp_dict)
-        print("TEST REMOTE END")
+# class RemoteServerTests(TestCase):
+#     def test_friend_request_to_remote(self):
+#         print("TEST REMOTE")
+#         a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
+#         a1.save()
+#         a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
+#         a2.save()
+#         temp_dict = {"from_author":a1.author_id, "to_author":a2.author_id}
+#         # print(temp_dict)
+#         friend_request_to_remote(temp_dict)
+#         print("TEST REMOTE END")
 
 
 #
