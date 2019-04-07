@@ -1054,7 +1054,6 @@ def remote_friendRequest(request):
             return Response({'query':'send remote friend request','message':"successfully sent"},status=status.HTTP_200_OK)
     except requests.ConnectionError as e:
         print(e)
-        continue
     return Response({'query':'send remote','message':"unsuccesful there was an error"},status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
