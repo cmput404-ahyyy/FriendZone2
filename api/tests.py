@@ -5,10 +5,14 @@ from django.test import Client
 from django.urls import reverse
 from django.db.models import Q
 import json
+import datetime
+import base64
 """"""
 from api.models import Author, FriendRequest, Friends,Post,Comment
 from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer, FollowingSerializer
 from rest_framework import status
+from rest_framework.test import APIClient
+from rest_framework.test import APIRequestFactory
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
@@ -16,6 +20,7 @@ from django.utils.timezone import get_current_timezone, make_aware
 from django.core import serializers
 from django.utils.dateparse import parse_datetime
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.test import APIRequestFactory
 import sys
 import unittest
 from django.utils import timezone
@@ -88,6 +93,88 @@ class LoginViewTest(TestCase):
         response = self.client.post(reverse('api:login'), data=data, format='json')
         # print(11111111111,response, 222222222222)
         self.assertEqual(response.status_code, 401)
+
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        credentials = body.get('token')
+
+        today_datetime = datetime.date.today()
+        today_title = "test {:%b, %d %Y}".format(today_datetime)
+        post_content = "This test post was created on {:%b, %d %Y}".format(today_datetime)
+
+        data = {
+            "permission": 'M',
+            "content": post_content,
+            "title": today_title,
+            "images":[],
+            "contentType": 'text/plain'
+        }
+
+        response2 = self.client.post(reverse('api:author'), data=data, format='json')
+        self.assertEqual(response2.status_code, 200)
+    
+#    Traceback (most recent call last):
+#   File "/Users/yonaelbekele/Documents/GitHub/FriendZone2/api/tests.py", line 123, in test_login_existing_author
+#     self.assertEqual(response.status_code, 200)
+# AssertionError: 400 != 200
+
+    
+    def test_login_existing_author(self):
+        data = {'username': 'y','password': '1'}
+        response = self.client.post(reverse('api-urls:login'), data=data, format='json')
+        print('it worked')
+
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+
+        print(response)
+        print(body)
+        self.assertEqual(response.status_code, 200)
+
+
+
+class PostTestCase(TestCase):
+    username = "y"
+    password = "1"
+    today_datetime = datetime.date.today()
+    today_title = "test {:%b, %d %Y}".format(today_datetime)
+    post_content = "This test post was created on {:%b, %d %Y}".format(today_datetime)
+
+
+    def setup(self):
+        self.user_1 = Author.objects.create_author(
+            userName='y', firstName='yonael', lastName='bekele', password='1'
+        )
+    
+    credentials = base64.b64encode(
+            "{}:{}".format(username, password).encode()
+        ).decode()
+    
+    client = Client(HTTP_AUTHORIZATION="Token {}".format(credentials))
+    
+    def test_make_a_post(self):
+        Post.objects.create(author=self.user_1, title=today_title, content=post_content)
+        response = client.get("/posts")
+        self.assertEqual(response.status_code, 200)
+    
+    def test_login_view(self):
+        response = self.client.get(reverse('api:posts'))
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        print(body)
+        #self.assertEqual(response.status_code, 200)
+
+
+
+    # test get more than one post
+
+    # test get one post 
+
+
+class LoginRequestTests(TestCase):
+    def setUp(self):
+        self.client = 
+    
 
 class FriendRequestViewTests(TestCase):
     # def test_create_first_frequest(self):
