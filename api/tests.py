@@ -69,25 +69,21 @@ class SignupViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
 class LoginViewTest(TestCase):
-    def test_login_inactive_user(self):
-        # login first
+    def setUp(self):
         data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
         response = self.client.post(reverse('api:signup'), data=data, format='json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_login_inactive_user(self):
+        # login
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:login'), data=data, format='json')
         body = response.content.decode('utf-8')
         body = json.loads(body)
-        credentials = body.get('token')
-        data = {'username': 'u3','password': 'u3'}
-        self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
-        response = self.client.post(reverse('api:login'), data=data, format='json')
-        # print(11111111111,response, 222222222222)
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 400, str(body))
 
     def test_login_active_user(self):
-
-        # register
         data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
-        response = self.client.post(reverse('api:signup'), data=data, format='json')
-
         # activate user
         user = User.objects.get(username='u3')
         user.is_active = True
