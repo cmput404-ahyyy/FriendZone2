@@ -1054,7 +1054,6 @@ def remote_friendRequest(request):
     token=resp.json()['token']
     print(node.node_url)
     response=requests.post(node.node_url+'/friendRequest/',data=json.dumps(data),headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
-    print(type(response.status_code))
     if(response.status_code==201):
         return Response({'query':'send remote friend request','message':"successfully sent"},status=status.HTTP_200_OK)
     #except requests.ConnectionError as e:
@@ -1075,7 +1074,8 @@ def remote_authors(request):
                 data=response.json()
                 if data:
                     for author in data:
-                        authors.append(author)
+                        if author['host'] in node.node_url:
+                            authors.append(author)
         except requests.ConnectionError as e:
             print(e)
             continue
