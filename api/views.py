@@ -709,8 +709,8 @@ def send_friend_request(request):
     if data.get('query')=='friendrequest':
         print("this is line 707")
         # DEBUG get(id) instead of [id]
-        requester_id = data.get('author')['id']
-        requestee_id = data.get('friend')['id']
+        requester_id = data['author']['id']
+        requestee_id = data['friend']['id']
         requester_id=requester_id.split('/')[-1]
         requestee_id=requestee_id.split('/')[-1]
         print(requestee_id)
@@ -786,12 +786,12 @@ def send_friend_request(request):
         try:
             requester = Author.objects.get(pk=requester_id)
         except Author.DoesNotExist:
-            requester=Author.objects.create(url=data.get('author')['url'],username=data.get('author')['displayName'],hostName=data.get('author')['host'])
+            requester=Author.objects.create(url=data['author']['url'],username=data['author']['displayName'],hostName=data['author']['host'])
         try:
             requestee = Author.objects.get(pk=requestee_id)
         except Author.DoesNotExist:
             # send_to_remote = True
-            requestee=Author.objects.create(url=data.get('friend')['url'],userName=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
+            requestee=Author.objects.create(url=data['friend']['url'],userName=data['friend']['displayName'],hostName=data['friend']['host'])
 
         # if send_to_remote:
         #     friend_request_to_remote(requester, requestee)
