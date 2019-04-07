@@ -249,6 +249,8 @@ class PostOfAuth(APIView):
                         print(author.url)
                         response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
                         data=response.json()
+                        print("here is the data we want line 252")
+                        print(data)
                     else:
                         response=requests.get(node.node_url+"posts/", auth=(node.username, node.password))
                         data =response.json()
@@ -372,6 +374,7 @@ class PostOfAuth(APIView):
                     filterposts.update(page)
         else:
             pass
+        print(filterposts)
         if filterposts:
             serializer=PostSerializer(filterposts,many=True)
             return self.paginator.get_paginated_response(serializer.data,'posts')
