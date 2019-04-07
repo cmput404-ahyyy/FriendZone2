@@ -30,7 +30,7 @@ urlpatterns = [
 
     path('get_authors_posts/', views.get_authors_posts, name="get_authors_posts"),
 
-    path('remote/author/posts/',views.remote_posts),
+    path('remote/authors/',views.remote_posts),
     #All posts marked as public on the server
     path('posts/',PublicPosts.as_view(), name='posts'),
     #All posts made by this specific author, visible to authenticated user
