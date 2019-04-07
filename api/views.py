@@ -1049,7 +1049,7 @@ def remote_friendRequest(request):
     resp=requests.post(node.node_url+'/auth/login',data=json.dumps(login_data),headers={"Content-Type":"application/json"})
     token=resp.json()['token']
     request_data={'from_author':data.get('from_author'),'to_author':data.get('to_author')}
-    response=requests.post(node.node_url+'friendRequest/',data=request_data,headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+    response=requests.post(node.node_url+'/friendRequest/',data=request_data,headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
     if(response.status_code==200):
         return Response({'query':'send remote friend request','message':"successfully sent"},status=status.HTTP_200_OK)
     #except requests.ConnectionError as e:
