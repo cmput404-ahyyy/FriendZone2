@@ -303,6 +303,8 @@ class PostOfAuth(APIView):
         filterposts=set()
         try:
             author=Author.objects.get(url=search)
+            print(author)
+            sys.stdout.flush()
             myfriends=[]
             friends=Friends.objects.filter(Q(author1=author)|Q(author2_url=author))
             if friends:
