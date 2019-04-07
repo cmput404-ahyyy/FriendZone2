@@ -886,17 +886,16 @@ def unfriend(request):
     requestee = Author.objects.get(pk=data.get("to_author"))
 
     try:
-        req = Friends.objects.filter(Q(author1=requester , author2=requestee) | Q(author1=requestee , author2=requester))
-        for q in req:
-            q.delete()
-    except FriendRequest.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        Friends.objects.filter(Q(author1=requester , author2=requestee) | Q(author1=requestee , author2=requester)).delete()
+    except Friends.DoesNotExist:
+        return Response(status=status.HTTP_200_OK)
 
-    req = Following.objects.filter(follower=requester, following=requestee)
-    if req.exists():
-        req.delete()
-    else:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    Following.objects.filter(Q(follower=requester.pk, following=requestee.pk)).delete()
+
+    # for each in req:
+    #     req.delete()
+
+    return Response(status=status.HTTP_200_OK)
     # try:
     # except FriendRequest.DoesNotExist:
     #     raise

@@ -27,7 +27,7 @@ from django.utils import timezone
 import pytz
 """"""
 from .views import enroll_following, make_them_friends, unfollow, friend_request_to_remote, send_friend_request
-
+from .views import unfriend
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 import uuid
 
@@ -212,6 +212,12 @@ class FriendRequestViewTests(APITestCase):
         self.assertEqual(response.status_code,status.HTTP_201_CREATED)
         self.assertIsNotNone(Friends.objects.filter(Q(author1=uuid.UUID(self.uuid1) , author2=uuid.UUID(self.uuid2)) | Q(author1=uuid.UUID(self.uuid2) , author2=uuid.UUID(self.uuid1))))
 
+    def test_unfollow(self):
+        # unbefriend
+        request = self.factory.post(reverse('api:unbefriend'), data=self.init_request, format='json')
+        response = unfriend(request)
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertEqual(0,len(Following.objects.filter(Q(follower=uuid.UUID(self.uuid1), following=uuid.UUID(self.uuid2)))))
 
 class CheckFriendshipViewTests(TestCase):
     # def test_existing_friendship(self):
