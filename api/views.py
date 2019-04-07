@@ -784,11 +784,11 @@ def send_friend_request(request):
     #creating author objects for the individuals involved in the request and making a fresh request
     if remote:
         try:
-            requester = Author.objects.get(pk=requester_id)
+            requester = Author.objects.get(url=data['author']['url'])
         except Author.DoesNotExist:
             requester=Author.objects.create(url=data['author']['url'],username=data['author']['displayName'],hostName=data['author']['host'])
         try:
-            requestee = Author.objects.get(pk=requestee_id)
+            requestee = Author.objects.get(url=data['friend']['url'])
         except Author.DoesNotExist:
             # send_to_remote = True
             requestee=Author.objects.create(url=data['friend']['url'],userName=data['friend']['displayName'],hostName=data['friend']['host'])
@@ -1038,23 +1038,20 @@ def friend_request_to_remote(dict_data):
 @api_view(['POST'])
 def remote_friendRequest(request):
     data=JSONParser().parse(request)
-    print(data['friend']['host'])
-    host_url=data['friend']['host']+'api'
-    print(host_url)
+    host_url=data['friend']['host']+'/api'
     nodes=Node.objects.all()
-    print(nodes)
     node=None
-    for node in nodes:
-        if node.node_url==host_url:
-            node=node
+    for remote_node in nodes:
+        if remote_node.node_url==host_url:
+            node=remote_node
    # try:
+
     login_data={"username":node.username,'password':node.password}
     print(login_data)
     resp=requests.post(node.node_url+'/auth/login',data=json.dumps(login_data),headers={"Content-Type":"application/json"})
     token=resp.json()['token']
     print(node.node_url)
     response=requests.post(node.node_url+'/friendRequest/',data=json.dumps(data),headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
-    print(type(response.status_code))
     if(response.status_code==201):
         return Response({'query':'send remote friend request','message':"successfully sent"},status=status.HTTP_200_OK)
     #except requests.ConnectionError as e:
@@ -1075,7 +1072,8 @@ def remote_authors(request):
                 data=response.json()
                 if data:
                     for author in data:
-                        authors.append(author)
+                        if author['hostName'] in node.node_url:
+                            authors.append(author)
         except requests.ConnectionError as e:
             print(e)
             continue
