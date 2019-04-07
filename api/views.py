@@ -1037,16 +1037,25 @@ def friend_request_to_remote(dict_data):
 
 @api_view(['GET'])
 def remote_posts(request):
-    # try:
-    #     author=Author.objects.get(owner=request.user)
-    # except Author.DoesNotExist:
-    #         return Response({"message":"cannot find author"},status=status.HTTP_400_BAD_REQUEST)
-
-    url="https://cmput404-front-test.herokuapp.com/api/posts"
-    request=requests.get(url,headers={"Authorization":"Basic eW9uYWVsX3RlYW06RUJYeFUmcXlXJDY4N2NNYiVtbUI=","Content-Type":"application/json"})
-
-    return Response(request.json())
-
+    nodes=Node.objects.all()
+    authors=[]
+    for node in nodes:
+        try:
+            if('copy'in node.node_url ):
+                data={"username":node.username,'password':node.password}
+                resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
+                token=resp.json()['token']
+                response=requests.get(node.node_url+'/authors/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+                data=response.json()
+            }
+            if data:
+                for author in data:
+                    authors.append(author)
+            except requests.ConnectionError as e:
+                print(e)
+                continue
+    return Response({authors},status=status.HTTP_200_OK)
+    
 """ input: node object ; output: Token"""
 def connect_a_node(node):
     data={'username':'team1','password':'garnett21'}
