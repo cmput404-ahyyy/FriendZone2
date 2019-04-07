@@ -251,6 +251,7 @@ class PostOfAuth(APIView):
                         data=response.json()
                         print("here is the data we want line 252")
                         print(data)
+                        sys.stdout.flush()
                     else:
                         response=requests.get(node.node_url+"posts/", auth=(node.username, node.password))
                         data =response.json()
