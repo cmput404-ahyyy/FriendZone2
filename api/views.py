@@ -791,7 +791,7 @@ def send_friend_request(request):
             requestee = Author.objects.get(pk=requestee_id)
         except Author.DoesNotExist:
             # send_to_remote = True
-            requestee=Author.objects.create(url=data['friend']['url'],userName=data['friend']['displayName'],hostName=data['friend']['host'])
+            requestee=Author.objects.create(url=data['friend']['url'],username=data['friend']['displayName'],hostName=data['friend']['host'])
 
         # if send_to_remote:
         #     friend_request_to_remote(requester, requestee)
