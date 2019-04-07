@@ -1048,8 +1048,8 @@ def remote_authors(request):
                 response=requests.get(node.node_url+'/authors/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
                 data=response.json()
             
-            if data:
-                for author in data:
+                if data:
+                    for author in data:
                     authors.append(author)
         except requests.ConnectionError as e:
             print(e)
