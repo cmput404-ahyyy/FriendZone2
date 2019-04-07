@@ -784,11 +784,11 @@ def send_friend_request(request):
     #creating author objects for the individuals involved in the request and making a fresh request
     if remote:
         try:
-            requester = Author.objects.get(pk=requester_id)
+            requester = Author.objects.get(url=data['author']['url'])
         except Author.DoesNotExist:
             requester=Author.objects.create(url=data['author']['url'],username=data['author']['displayName'],hostName=data['author']['host'])
         try:
-            requestee = Author.objects.get(pk=requestee_id)
+            requestee = Author.objects.get(url=data['friend']['url'])
         except Author.DoesNotExist:
             # send_to_remote = True
             requestee=Author.objects.create(url=data['friend']['url'],username=data['friend']['displayName'],hostName=data['friend']['host'])
@@ -843,12 +843,16 @@ def respond_to_friend_request(request):
     if request.method != 'POST':
         # invalid method
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
 
     data = JSONParser().parse(request)
     try:
         req = FriendRequest.objects.filter(Q(from_author=data.get("from_author")) & Q(to_author=data.get("to_author")))
     except FriendRequest.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        if checkifremote(data) and data.get('accepted')==True:
+            make_them_friends()
+        else:   
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
     if data.get("accepted"):
         requester_id = data.get("from_author")
@@ -871,6 +875,17 @@ def respond_to_friend_request(request):
             serializer.update(q,temp_dict)
         return Response(status=status.HTTP_200_OK)
     """ TODO user would get notification about requests are not rejected"""
+
+def checkifremote(data):
+    nodes=Node.objects.all()
+    for node in nodes:
+        if data['from_author']['url'] in node.node_url or data['to_author']['url'] in node.node_url:
+            return True
+        
+    return False
+
+
+
 
 @api_view(['POST'])
 def unfriend(request):
