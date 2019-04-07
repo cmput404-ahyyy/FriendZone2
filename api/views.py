@@ -251,7 +251,7 @@ class PostOfAuth(APIView):
                     else:
                         response=requests.get(node.node_url+"posts/", auth=(node.username, node.password))
                         data =response.json()
-                    if data.get('query')=='posts':
+                    if data.get('posts'):
                             posts=data.get('posts')
                             if posts:
                                 for post in posts:
