@@ -1038,16 +1038,14 @@ def friend_request_to_remote(dict_data):
 @api_view(['POST'])
 def remote_friendRequest(request):
     data=JSONParser().parse(request)
-    print(data['friend']['host'])
-    host_url=data['friend']['host']+'api'
-    print(host_url)
+    host_url=data['friend']['host']+'/api'
     nodes=Node.objects.all()
-    print(nodes)
     node=None
-    for node in nodes:
-        if node.node_url==host_url:
-            node=node
+    for remote_node in nodes:
+        if remote_node.node_url==host_url:
+            node=remote_node
    # try:
+
     login_data={"username":node.username,'password':node.password}
     print(login_data)
     resp=requests.post(node.node_url+'/auth/login',data=json.dumps(login_data),headers={"Content-Type":"application/json"})
