@@ -27,7 +27,7 @@ from django.utils import timezone
 import pytz
 """"""
 from .views import enroll_following, make_them_friends, unfollow, friend_request_to_remote, send_friend_request
-from .views import unfriend
+from .views import unfriend, get_friends
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 import uuid
 
@@ -185,8 +185,10 @@ class FriendRequestViewTests(APITestCase):
         # for i in range(5,7):
         self.uuid1 = "06335e84-2872-4914-8c5d-3ed07d2a2f16"
         self.uuid2 = "06335e84-2872-4914-8c5d-3ed07d2a2f17"
+        self.uuid3 = "06335e84-2872-4914-8c5d-3ed07d2a2f18"
         Author.objects.create(pk=uuid.UUID(self.uuid1), username='ftest1', password='test1111')
         Author.objects.create(pk=uuid.UUID(self.uuid2), username='ftest2', password='test1111')
+        Author.objects.create(pk=uuid.UUID(self.uuid3), username='ftest2', password='test1111')
         self.init_request = {
             'from_author': uuid.UUID(self.uuid1),
             'to_author': uuid.UUID(self.uuid2)
@@ -194,6 +196,14 @@ class FriendRequestViewTests(APITestCase):
         self.reverse_request = {
             'from_author': uuid.UUID(self.uuid1),
             'to_author': uuid.UUID(self.uuid2)
+        }
+        self.init_request_2 = {
+            'from_author': uuid.UUID(self.uuid1),
+            'to_author': uuid.UUID(self.uuid3)
+        }
+        self.reverse_request_2 = {
+            'from_author': uuid.UUID(self.uuid3),
+            'to_author': uuid.UUID(self.uuid1)
         }
 
 
@@ -218,6 +228,20 @@ class FriendRequestViewTests(APITestCase):
         response = unfriend(request)
         self.assertEqual(response.status_code,status.HTTP_200_OK)
         self.assertEqual(0,len(Following.objects.filter(Q(follower=uuid.UUID(self.uuid1), following=uuid.UUID(self.uuid2)))))
+
+    def test_get_friends_global(self):
+        request = self.factory.post(reverse('api:send_friend_request'), data=self.init_request, format='json')
+        response = send_friend_request(request)
+        request = self.factory.post(reverse('api:send_friend_request'), data=self.reverse_request, format='json')
+        response = send_friend_request(request)
+        request = self.factory.post(reverse('api:send_friend_request'), data=self.init_request_2, format='json')
+        response = send_friend_request(request)
+        request = self.factory.post(reverse('api:send_friend_request'), data=self.reverse_request_2, format='json')
+        response = send_friend_request(request)
+        request = self.factory.get(reverse('api:get_global_friends', kwargs={'authorid': self.uuid1}), format='json')
+        response = get_friends(request, self.uuid1)
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+
 
 class CheckFriendshipViewTests(TestCase):
     # def test_existing_friendship(self):
