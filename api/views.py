@@ -849,9 +849,6 @@ def respond_to_friend_request(request):
     try:
         req = FriendRequest.objects.filter(Q(from_author=data.get("from_author")) & Q(to_author=data.get("to_author")))
     except FriendRequest.DoesNotExist:
-        if checkifremote(data) and data.get('accepted')==True:
-            make_them_friends()
-        else:   
             return Response(status=status.HTTP_404_NOT_FOUND)
 
     if data.get("accepted"):
@@ -876,13 +873,6 @@ def respond_to_friend_request(request):
         return Response(status=status.HTTP_200_OK)
     """ TODO user would get notification about requests are not rejected"""
 
-def checkifremote(data):
-    nodes=Node.objects.all()
-    for node in nodes:
-        if data['from_author']['url'] in node.node_url or data['to_author']['url'] in node.node_url:
-            return True
-        
-    return False
 
 
 
