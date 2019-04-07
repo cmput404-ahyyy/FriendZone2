@@ -29,6 +29,8 @@ urlpatterns = [
     path('notifications/', views.notifications, name="notifications"),
 
     path('get_authors_posts/', views.get_authors_posts, name="get_authors_posts"),
+    
+    path('remote/friendRequest/',views.remote_friendRequest)
 
     path('remote/authors/',views.remote_authors),
     #All posts marked as public on the server
