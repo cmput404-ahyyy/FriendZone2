@@ -1052,9 +1052,9 @@ def remote_friendRequest(request):
         response=requests.post(node.node_url+'friendRequest/',data=request_data,headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
         if(response.status_code==200):
             return Response({'query':'send remote friend request','message':"successfully sent"},status=status.HTTP_200_OK)
-     except requests.ConnectionError as e:
-            print(e)
-            continue
+    except requests.ConnectionError as e:
+        print(e)
+        continue
     return Response({'query':'send remote','message':"unsuccesful there was an error"},status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
