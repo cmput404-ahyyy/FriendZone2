@@ -236,6 +236,7 @@ class PostOfAuth(APIView):
             return self.send_posts_for_remote(request,search)
         else:
             nodes=Node.objects.all()
+            print("here")
             author=self.get_author(request)
             auth_posts=[]
             for node in nodes:
@@ -295,14 +296,60 @@ class PostOfAuth(APIView):
         ## getting the remote user node to see if shareposts or shareimages is set
         node=get_object_or_404(Node, user=request.user)
         ## finding friends of the remote user that is authenticated
-        myfriends=[]
-        friends=Friends.objects.filter(Q(author1_url=search)|Q(author2_url=search))
-        if friends:
-            if friends.values('author1_url')[0]['author1_url']== search:
-                myfriends.append(friends.values('author2'))
-            else:
-                myfriends.append(friends.values('author1'))
+        
         filterposts=set()
+        try:
+            author=Author.objects.get(url=search)
+            myfriends=[]
+            friends=Friends.objects.filter(Q(author1=author)|Q(author2_url=author))
+            if friends:
+                for i in friends:
+                    print(author.author_id)
+                    print(i.author1.author_id)
+                    if(i.author1.author_id==author.author_id):
+                        myfriends.append(i.author2)
+                else:
+                    myfriends.append(i.author1)
+
+                """ print("line 302")
+                print(friends.values('author1_url')[0]['author1_url'])
+                if friends.values('author1_url')[0]['author1_url']== search:
+                    myfriends.append(friends.values('author2'))
+                else:
+                    myfriends.append(friends.values('author1')) """
+            
+            search=author
+            foaf=self.find_foaf(myfriends,search,node)
+            print(foaf)
+            print(myfriends)
+            if foaf=="Problem with request":
+                return Response({"message":"Did you pass in an accessible author url"}, status=status.HTTP_400_BAD_REQUEST)
+            #Get all FOAF post visible to user
+            for friend in foaf:
+                posts=Post.objects.filter(Q(author=friend) & Q(permission='FF')).order_by('publicationDate')
+                if posts:
+                    postsList=[]
+                    for post in posts:
+                        if self.checkNodePermission(node,getattr(post, 'contentType')):
+                            postsList.append(post)
+                    page = self.paginator.paginate_queryset(postsList,request)
+                    filterposts.update(page)
+            # getting all post of friends with authenticated user
+            for friend in myfriends:
+                posts=Post.objects.filter(Q(author=friend)).order_by('publicationDate')
+                #filtering posts to check if server admin denies access to images or Posts
+                if posts:
+                    postsList=[]
+                    for post in posts:
+                        if self.checkNodePermission(node,getattr(post, 'contentType')):
+                            postsList.append(post)
+                    page = self.paginator.paginate_queryset(postsList,request)
+                    filterposts.update(page)
+                else:
+                    pass
+        except Author.DoesNotExist:
+            continue
+
         ## Get All public posts visible to authenticated remote user
         public_posts=Post.objects.filter(Q(permission="P"))
         if public_posts:
@@ -312,35 +359,8 @@ class PostOfAuth(APIView):
                     postsList.append(post)
             page = self.paginator.paginate_queryset(postsList,request)
             filterposts.update(page)
-        foaf=self.find_foaf(myfriends,search,node)
-        if foaf=="Problem with request":
-            return Response({"message":"Did you pass in an accessible author url"}, status=status.HTTP_400_BAD_REQUEST)
-        #Get all FOAF post visible to user
-        for friend in foaf:
-            posts=Post.objects.filter(Q(author=friend) & Q(permission='FF')).order_by('publicationDate')
-            if posts:
-                postsList=[]
-                for post in posts:
-                    if self.checkNodePermission(node,getattr(post, 'contentType')):
-                        postsList.append(post)
-                page = self.paginator.paginate_queryset(postsList,request)
-                filterposts.update(page)
-        # getting all post of friends with authenticated user
-        for friend in myfriends:
-            if friend[0]['author1']:
-                posts=Post.objects.filter(Q(author=friend[0]['author1'])).order_by('publicationDate')
-            else:
-                posts=Post.objects.filter(Q(author=friend[0]['author2'])).order_by('publicationDate')
-            #filtering posts to check if server admin denies access to images or Posts
-            if posts:
-                postsList=[]
-                for post in posts:
-                    if self.checkNodePermission(node,getattr(post, 'contentType')):
-                        postsList.append(post)
-                page = self.paginator.paginate_queryset(postsList,request)
-                filterposts.update(page)
-            else:
-                pass
+
+
         ## checking the visible to table to check if there are additional posts visible to user
         visiblePosts=VisibleToPost.objects.filter(Q(author_url=search)).values('post_id')
         if visiblePosts:
