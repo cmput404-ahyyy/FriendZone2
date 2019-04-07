@@ -1050,7 +1050,7 @@ def remote_authors(request):
             
                 if data:
                     for author in data:
-                    authors.append(author)
+                        authors.append(author)
         except requests.ConnectionError as e:
             print(e)
             continue
