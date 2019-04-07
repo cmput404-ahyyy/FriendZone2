@@ -1036,7 +1036,7 @@ def friend_request_to_remote(dict_data):
     return r
 
 @api_view(['GET'])
-def remote_posts(request):
+def remote_authors(request):
     nodes=Node.objects.all()
     authors=[]
     for node in nodes:
