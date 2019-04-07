@@ -784,11 +784,11 @@ def send_friend_request(request):
     #creating author objects for the individuals involved in the request and making a fresh request
     if remote:
         try:
-            requester = Author.objects.get(pk=requester_id)
+            requester = Author.objects.get(url=data['author']['url'])
         except Author.DoesNotExist:
             requester=Author.objects.create(url=data['author']['url'],username=data['author']['displayName'],hostName=data['author']['host'])
         try:
-            requestee = Author.objects.get(pk=requestee_id)
+            requestee = Author.objects.get(url=data['friend']['url'])
         except Author.DoesNotExist:
             # send_to_remote = True
             requestee=Author.objects.create(url=data['friend']['url'],userName=data['friend']['displayName'],hostName=data['friend']['host'])
@@ -1074,7 +1074,7 @@ def remote_authors(request):
                 data=response.json()
                 if data:
                     for author in data:
-                        if author['host'] in node.node_url:
+                        if author['hostName'] in node.node_url:
                             authors.append(author)
         except requests.ConnectionError as e:
             print(e)
