@@ -1035,6 +1035,28 @@ def friend_request_to_remote(dict_data):
 
     return r
 
+@api_view(['POST'])
+def remote_friendRequest(request):
+    data=JSONParser().parse(request)
+    host_url=data.get('host')+'/api'
+    nodes=Node.objects.all()
+    node=None
+    for node in nodes:
+        if node.node_url==host_url:
+            node=node
+    try:
+        login_data={"username":node.username,'password':node.password}
+        resp=requests.post(node.node_url+'/auth/login',data=json.dumps(login_data),headers={"Content-Type":"application/json"})
+        token=resp.json()['token']
+        request_data={'from_author':data.get('from_author'),'to_author':data.get('to_author')}
+        response=requests.post(node.node_url+'friendRequest/',data=request_data,headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+        if(response.status_code==200):
+            return Response({'query':'send remote friend request','message':"successfully sent"},status=status.HTTP_200_OK)
+     except requests.ConnectionError as e:
+            print(e)
+            continue
+    return Response({'query':'send remote','message':"unsuccesful there was an error"},status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 def remote_authors(request):
     nodes=Node.objects.all()
@@ -1047,7 +1069,6 @@ def remote_authors(request):
                 token=resp.json()['token']
                 response=requests.get(node.node_url+'/authors/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
                 data=response.json()
-            
                 if data:
                     for author in data:
                         authors.append(author)
