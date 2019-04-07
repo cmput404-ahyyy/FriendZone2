@@ -4,6 +4,8 @@ from .models import Author, FriendRequest, Friends,Post,Comment, Following
 from django.test import Client
 from django.urls import reverse
 from django.db.models import Q
+from django.contrib.auth.models import User
+import datetime
 import json
 import uuid
 """"""
@@ -82,18 +84,39 @@ class LoginViewTest(TestCase):
 
     def test_login_active_user(self):
 
+        # register
         data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
         response = self.client.post(reverse('api:signup'), data=data, format='json')
 
-        # body = JSONParser().parse(response.content.decode('utf-8'))
+        # activate user
+        user = User.objects.get(username='u3')
+        user.is_active = True
+        user.save()
+
+        # login
+        response = self.client.post(reverse('api:login'), data=data, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        # make a post 
         body = response.content.decode('utf-8')
         body = json.loads(body)
         credentials = body.get('token')
-        data = {'username': 'u3','password': 'u3'}
-        self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
-        response = self.client.post(reverse('api:login'), data=data, format='json')
-        # print(11111111111,response, 222222222222)
-        self.assertEqual(response.status_code, 401)
+        today_datetime = datetime.date.today()
+        today_title = "test {:%b, %d %Y}".format(today_datetime)
+        post_content = "This test post was created on {:%b, %d %Y}".format(today_datetime)
+
+        data = {
+            "permission": 'M',
+            "content": post_content,
+            "title": today_title,
+            "images":[],
+            "contentType": 'text/plain'
+        }
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + credentials
+        response2 = self.client.post(reverse('api:auth_posts'), data=data, format='json', content_type='application/json')
+        body = response2.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response2.status_code, 200, str(body))
 
 
 
