@@ -236,7 +236,6 @@ class PostOfAuth(APIView):
             return self.send_posts_for_remote(request,search)
         else:
             nodes=Node.objects.all()
-            print("here")
             author=self.get_author(request)
             auth_posts=[]
             for node in nodes:
@@ -249,9 +248,6 @@ class PostOfAuth(APIView):
                         print(author.url)
                         response=requests.get(node.node_url+'/author/posts/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json","Auth-User": author.url})
                         data=response.json()
-                        print("here is the data we want line 252")
-                        print(data)
-                        sys.stdout.flush()
                     else:
                         response=requests.get(node.node_url+"posts/", auth=(node.username, node.password))
                         data =response.json()
@@ -299,62 +295,14 @@ class PostOfAuth(APIView):
         ## getting the remote user node to see if shareposts or shareimages is set
         node=get_object_or_404(Node, user=request.user)
         ## finding friends of the remote user that is authenticated
-        
+        myfriends=[]
+        friends=Friends.objects.filter(Q(author1_url=search)|Q(author2_url=search))
+        if friends:
+            if friends.values('author1_url')[0]['author1_url']== search:
+                myfriends.append(friends.values('author2'))
+            else:
+                myfriends.append(friends.values('author1'))
         filterposts=set()
-        try:
-            author=Author.objects.get(url=search)
-            print(author)
-            sys.stdout.flush()
-            myfriends=[]
-            friends=Friends.objects.filter(Q(author1=author)|Q(author2_url=author))
-            if friends:
-                for i in friends:
-                    print(author.author_id)
-                    print(i.author1.author_id)
-                    if(i.author1.author_id==author.author_id):
-                        myfriends.append(i.author2)
-                else:
-                    myfriends.append(i.author1)
-
-                """ print("line 302")
-                print(friends.values('author1_url')[0]['author1_url'])
-                if friends.values('author1_url')[0]['author1_url']== search:
-                    myfriends.append(friends.values('author2'))
-                else:
-                    myfriends.append(friends.values('author1')) """
-            
-            search=author
-            foaf=self.find_foaf(myfriends,search,node)
-            print(foaf)
-            print(myfriends)
-            if foaf=="Problem with request":
-                return Response({"message":"Did you pass in an accessible author url"}, status=status.HTTP_400_BAD_REQUEST)
-            #Get all FOAF post visible to user
-            for friend in foaf:
-                posts=Post.objects.filter(Q(author=friend) & Q(permission='FF')).order_by('publicationDate')
-                if posts:
-                    postsList=[]
-                    for post in posts:
-                        if self.checkNodePermission(node,getattr(post, 'contentType')):
-                            postsList.append(post)
-                    page = self.paginator.paginate_queryset(postsList,request)
-                    filterposts.update(page)
-            # getting all post of friends with authenticated user
-            for friend in myfriends:
-                posts=Post.objects.filter(Q(author=friend)).order_by('publicationDate')
-                #filtering posts to check if server admin denies access to images or Posts
-                if posts:
-                    postsList=[]
-                    for post in posts:
-                        if self.checkNodePermission(node,getattr(post, 'contentType')):
-                            postsList.append(post)
-                    page = self.paginator.paginate_queryset(postsList,request)
-                    filterposts.update(page)
-                else:
-                    pass
-        except Author.DoesNotExist:
-            pass
-
         ## Get All public posts visible to authenticated remote user
         public_posts=Post.objects.filter(Q(permission="P"))
         if public_posts:
@@ -364,8 +312,35 @@ class PostOfAuth(APIView):
                     postsList.append(post)
             page = self.paginator.paginate_queryset(postsList,request)
             filterposts.update(page)
-
-
+        foaf=self.find_foaf(myfriends,search,node)
+        if foaf=="Problem with request":
+            return Response({"message":"Did you pass in an accessible author url"}, status=status.HTTP_400_BAD_REQUEST)
+        #Get all FOAF post visible to user
+        for friend in foaf:
+            posts=Post.objects.filter(Q(author=friend) & Q(permission='FF')).order_by('publicationDate')
+            if posts:
+                postsList=[]
+                for post in posts:
+                    if self.checkNodePermission(node,getattr(post, 'contentType')):
+                        postsList.append(post)
+                page = self.paginator.paginate_queryset(postsList,request)
+                filterposts.update(page)
+        # getting all post of friends with authenticated user
+        for friend in myfriends:
+            if friend[0]['author1']:
+                posts=Post.objects.filter(Q(author=friend[0]['author1'])).order_by('publicationDate')
+            else:
+                posts=Post.objects.filter(Q(author=friend[0]['author2'])).order_by('publicationDate')
+            #filtering posts to check if server admin denies access to images or Posts
+            if posts:
+                postsList=[]
+                for post in posts:
+                    if self.checkNodePermission(node,getattr(post, 'contentType')):
+                        postsList.append(post)
+                page = self.paginator.paginate_queryset(postsList,request)
+                filterposts.update(page)
+            else:
+                pass
         ## checking the visible to table to check if there are additional posts visible to user
         visiblePosts=VisibleToPost.objects.filter(Q(author_url=search)).values('post_id')
         if visiblePosts:
@@ -377,7 +352,6 @@ class PostOfAuth(APIView):
                     filterposts.update(page)
         else:
             pass
-        print(filterposts)
         if filterposts:
             serializer=PostSerializer(filterposts,many=True)
             return self.paginator.get_paginated_response(serializer.data,'posts')
@@ -677,7 +651,6 @@ class PostComments(APIView):
             serializer=CommentSerializer(comments,many=True)
             return self.paginator.get_paginated_response(serializer.data,'comment')
 
-    
     def post(self,request,pk,format=None):
         data=JSONParser().parse(request)
         print("Here")
@@ -722,6 +695,7 @@ class PostComments(APIView):
             return True
         else:
             return False
+
 
 @api_view(['POST'])
 def send_friend_request(request):
@@ -818,7 +792,7 @@ def send_friend_request(request):
             requestee = Author.objects.get(url=data['friend']['url'])
         except Author.DoesNotExist:
             # send_to_remote = True
-            requestee=Author.objects.create(url=data['friend']['url'],username=data['friend']['displayName'],hostName=data['friend']['host'])
+            requestee=Author.objects.create(url=data['friend']['url'],userName=data['friend']['displayName'],hostName=data['friend']['host'])
 
         # if send_to_remote:
         #     friend_request_to_remote(requester, requestee)
@@ -870,13 +844,12 @@ def respond_to_friend_request(request):
     if request.method != 'POST':
         # invalid method
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-    
 
     data = JSONParser().parse(request)
     try:
         req = FriendRequest.objects.filter(Q(from_author=data.get("from_author")) & Q(to_author=data.get("to_author")))
     except FriendRequest.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     if data.get("accepted"):
         requester_id = data.get("from_author")
@@ -899,10 +872,6 @@ def respond_to_friend_request(request):
             serializer.update(q,temp_dict)
         return Response(status=status.HTTP_200_OK)
     """ TODO user would get notification about requests are not rejected"""
-
-
-
-
 
 @api_view(['POST'])
 def unfriend(request):
@@ -1067,18 +1036,50 @@ def friend_request_to_remote(dict_data):
 
     return r
 
+@api_view(['POST'])
+def remote_friendRequest(request):
+    data=JSONParser().parse(request)
+    host_url=data['friend']['host']+'/api'
+    nodes=Node.objects.all()
+    node=None
+    for remote_node in nodes:
+        if remote_node.node_url==host_url:
+            node=remote_node
+   # try:
+
+    login_data={"username":node.username,'password':node.password}
+    print(login_data)
+    resp=requests.post(node.node_url+'/auth/login',data=json.dumps(login_data),headers={"Content-Type":"application/json"})
+    token=resp.json()['token']
+    print(node.node_url)
+    response=requests.post(node.node_url+'/friendRequest/',data=json.dumps(data),headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+    if(response.status_code==201):
+        return Response({'query':'send remote friend request','message':"successfully sent"},status=status.HTTP_200_OK)
+    #except requests.ConnectionError as e:
+     #   print(e)
+    return Response({'query':'send remote','message':"unsuccesful there was an error"},status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
-def remote_posts(request):
-    # try:
-    #     author=Author.objects.get(owner=request.user)
-    # except Author.DoesNotExist:
-    #         return Response({"message":"cannot find author"},status=status.HTTP_400_BAD_REQUEST)
-
-    url="https://cmput404-front-test.herokuapp.com/api/posts"
-    request=requests.get(url,headers={"Authorization":"Basic eW9uYWVsX3RlYW06RUJYeFUmcXlXJDY4N2NNYiVtbUI=","Content-Type":"application/json"})
-
-    return Response(request.json())
-
+def remote_authors(request):
+    nodes=Node.objects.all()
+    authors=[]
+    for node in nodes:
+        try:
+            if('copy'in node.node_url ):
+                data={"username":node.username,'password':node.password}
+                resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
+                token=resp.json()['token']
+                response=requests.get(node.node_url+'/authors/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+                data=response.json()
+                if data:
+                    for author in data:
+                        if author['hostName'] in node.node_url:
+                            authors.append(author)
+        except requests.ConnectionError as e:
+            print(e)
+            continue
+    return Response(authors,status=status.HTTP_200_OK)
+    
 """ input: node object ; output: Token"""
 def connect_a_node(node):
     data={'username':'team1','password':'garnett21'}
