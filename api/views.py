@@ -664,7 +664,7 @@ class PostComments(APIView):
                             data={"username":node.username,'password':node.password}
                             resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
                             token=resp.json()['token']
-                            response=requests.post(data.get('post')+'/comments/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+                            response=requests.post(data.get('post')+'/comments/',data=json.dumps(data),headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
                     else:
                         if data.get('post') in node.node_url:
                             response=requests.post(data.get('post')+"/comments",data=json.dumps(data), auth=(node.username, node.password))
@@ -851,7 +851,7 @@ def respond_to_friend_request(request):
     except FriendRequest.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-        
+
     print("line 855")
     print(data)
 
@@ -862,7 +862,8 @@ def respond_to_friend_request(request):
         login_data={"username":node.username,'password':node.password}
         resp=requests.post(node.node_url+'/auth/login',data=json.dumps(login_data),headers={"Content-Type":"application/json"})
         token=resp.json()['token']
-        response=requests.post(node.node_url+'/friendResult/',data=json.dumps(data),headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+        friend_result={"remote":False,"from_author":data.get('from_author'),"to_author":data.get('to_author'),"accepted":data.get('accepted'),"regected":data.get('regected'),'host':data.get('host')}
+        response=requests.post(node.node_url+'/friendResult/',data=json.dumps(friend_result),headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
         print(response)
 
     if data.get("accepted"):
