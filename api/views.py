@@ -850,7 +850,13 @@ def respond_to_friend_request(request):
         req = FriendRequest.objects.filter(Q(from_author=data.get("from_author")) & Q(to_author=data.get("to_author")))
     except FriendRequest.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
-    
+
+        
+    print("line 855")
+    print(data)
+
+
+
     if data.get("remote")==True:
         node=Node.objects.get(node_url=data.get('host')+'/api')
         login_data={"username":node.username,'password':node.password}
