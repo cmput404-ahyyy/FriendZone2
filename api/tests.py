@@ -169,7 +169,8 @@ class ExistingPostViewTests(TestCase):
             "content": 'post_content',
             "title": 'today_title',
             "images":[],
-            "contentType": 'text/plain'
+            "contentType": 'text/plain',
+
         }
         self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
         response = self.client.post(reverse('api:auth_posts'), data=data, format='json', content_type='application/json')
@@ -185,7 +186,7 @@ class ExistingPostViewTests(TestCase):
         self.assertEqual(response.status_code, 200, str(body))
         self.postid = body['posts'][0]['postid']
 
-    def test_get_my_posts_eidt_delete(self):
+    def test_edit_delete_my_posts(self):
         # get profile to get current author id
         self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
         response = self.client.get(reverse('api:author'), format='json', content_type='application/json')
@@ -202,11 +203,45 @@ class ExistingPostViewTests(TestCase):
         body = json.loads(body)
         self.assertEqual(response.status_code, 200, str(body))
         self.assertEqual(len(body), 1, 'check returned number of posts')
+        post = body[0]
+        postid = body[0]['postid']
 
         #edit my post
+        post['content'] = 'new content'
+        post['origin'] = 'https://test.com'
+        post['author']['firstName'] = 'first name'
+        post['author']['lastName'] = 'last name'
+        post['author']['githubUrl'] = 'https://test.com'
+        response = self.client.put(reverse('api:post_info', args = [postid]), data=post, format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+        self.assertEqual(body['success'], True, 'not successful')
 
+        # check if it's updated
+        data = {"author_id": author_id}
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.post(reverse('api:get_authors_posts'), data=data, format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+        self.assertEqual(body[0]['content'], 'new content', 'content is not updated')
+        
         #delete my posts
+        response = self.client.delete(reverse('api:post_info', args = [postid]), data=post, format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+        self.assertEqual(body['success'], True, 'not successful')
 
+        #check if actually deleted
+        data = {"author_id": author_id}
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.post(reverse('api:get_authors_posts'), data=data, format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+        self.assertEqual(len(body), 0, 'check returned number of posts')
 
     def test_get_specific_posts(self):
 
