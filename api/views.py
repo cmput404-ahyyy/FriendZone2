@@ -1065,7 +1065,7 @@ def remote_authors(request):
     authors=[]
     for node in nodes:
         try:
-            if('copy'in node.node_url ):
+            if('copy'in node.node_url or 'project' in node.node_url):
                 data={"username":node.username,'password':node.password}
                 resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
                 token=resp.json()['token']
