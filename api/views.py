@@ -677,34 +677,40 @@ class PostComments(APIView):
             serializer=CommentSerializer(comments,many=True)
             return self.paginator.get_paginated_response(serializer.data,'comment')
 
+    
     def post(self,request,pk,format=None):
         data=JSONParser().parse(request)
+        print("Here")
+        if data.get('query')=='addComment':
+            print("In add comment")
+            nodes=Node.objects.all()
+            if nodes:
+                for node in nodes:
+                    if node.username=='team1':
+                        if data.get('post') in node.node_url:
+                            data={"username":node.username,'password':node.password}
+                            resp=requests.post(node.node_url+'/auth/login',data=json.dumps(data),headers={"Content-Type":"application/json"})
+                            token=resp.json()['token']
+                            response=requests.post(data.get('post')+'/comments/',headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
+                    else:
+                        if data.get('post') in node.node_url:
+                            response=requests.post(data.get('post')+"/comments",data=json.dumps(data), auth=(node.username, node.password))
+                            data =response.json()
+                            return Response(data,status_code=response.status_code)
+                
         post=self.get_post(pk)
         if post=="error":
             return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_404_NOT_FOUND)
-        if data.get('query')=="addComment":
-            response=requests.get(data.get('author'))
-            if response:
-                if self.remote_can_comment(post,response.url):
-                    found_author,created=Author.objects.get_or_create(url=response['url'],author_id=response['author_id'],hostName=response['hostName'],username=response['username'],firstName=response['firstName'],lastName=response['lastName'])
-                    comment= Comment.objects.create(comment=data.get('comment'),author=found_author,published=timezone.now(),postid=post,contentType= data.get('contentType'))
-                    return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
-                else:
-                    return Response({"message":"sorry you cannot comment on this post"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
-            else:
-                return Response({"query":"addComment", "success":"Fail","message":"please use a author url"},status=status.HTTP_400_BAD_REQUEST)
-        else:
-            author=self.get_author(request)
-            if author=="error":
-                return Response({"message":"authenticated author not found"}, status=status.HTTP_400_BAD_REQUEST)
-            serializer=CommentSerializer(data=data)
-            if serializer.is_valid():
-                serializer.create(data,author,post)
+        found_author,created=Author.objects.get_or_create(author_id=data.get('comment')['author']['id'],hostName=data.get('comment')['author']['host'],username=data.get('comment')['author']['displayName'],url=data.get('comment')['author']['url'])
+        if self.can_comment(post,found_author):
+            comment= Comment.objects.create(comment=data.get('comment')['comment'],author=found_author,published=timezone.now(),postid=post,contentType= data.get('comment')['contentType'])
             return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
-        return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"message":"sorry you cannot comment on this post"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            
 
-    def remote_can_comment(self,post,data):
-        friends=Friends.objects.filter(Q(author1=post.author)& Q(author2_url=data)|Q(author2=post.author)& Q(author1_url=data))
+    def can_comment(self,post,author):
+        friends=Friends.objects.filter(Q(author1=post.author)& Q(author2=author)|Q(author2=post.author)& Q(author1=author))
         if post.permission=="F" and friends:
             return True
         elif post.permission=="L":
@@ -714,13 +720,8 @@ class PostComments(APIView):
             return False
         elif post.permission=="P":
             return True
-        # Todo checking if there are friends of friends so that you can allow them to comment
-        # elif post.permission=="FF" and friends:
-        #     set=()
-        #     for friend in friends:
         else:
             return False
-
 
 @api_view(['POST'])
 def send_friend_request(request):
