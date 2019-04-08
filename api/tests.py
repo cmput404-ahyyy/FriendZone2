@@ -185,6 +185,28 @@ class ExistingPostViewTests(TestCase):
         self.assertEqual(response.status_code, 200, str(body))
         self.postid = body['posts'][0]['postid']
 
+    def test_get_my_posts_eidt_delete(self):
+        # get profile to get current author id
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.get(reverse('api:author'), format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+        author_id = body['author_id']
+
+        #get my posts
+        data = {"author_id": author_id}
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.post(reverse('api:get_authors_posts'), data=data, format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+        self.assertEqual(len(body), 1, 'check returned number of posts')
+
+        #edit my post
+
+        #delete my posts
+
 
     def test_get_specific_posts(self):
 
@@ -195,7 +217,7 @@ class ExistingPostViewTests(TestCase):
         body = json.loads(body)
         self.assertEqual(response.status_code, 200, str(body))
 
-    def test_get_post_comment(self):
+    def test_post_and_get_comment(self):
         data = {
             "comment": "this is comment",
             "contentType": "text/plain",
