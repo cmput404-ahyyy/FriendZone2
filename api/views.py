@@ -137,7 +137,7 @@ def notifications(request):
 
         for a in author_object:
             print(a.from_author)
-            follower = Author.objects.get(username=a.from_author)
+            follower = Author.objects.get(author_id=a.from_author.author_id)
             serializer = AuthorSerializer(follower)
             author_list.append(serializer.data)
 
