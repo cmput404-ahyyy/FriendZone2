@@ -5,7 +5,6 @@ from django.test import Client
 from django.urls import reverse
 from django.db.models import Q
 from django.contrib.auth.models import User
-import datetime
 import json
 import uuid
 """"""
@@ -82,7 +81,7 @@ class LoginViewTest(TestCase):
         body = json.loads(body)
         self.assertEqual(response.status_code, 400, str(body))
 
-    def test_login_active_user(self):
+    def test_login_logout_active_user(self):
         data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
         # activate user
         user = User.objects.get(username='u3')
@@ -93,28 +92,131 @@ class LoginViewTest(TestCase):
         response = self.client.post(reverse('api:login'), data=data, format='json')
         self.assertEqual(response.status_code, 200)
 
-        # make a post 
+        #logout
         body = response.content.decode('utf-8')
         body = json.loads(body)
         credentials = body.get('token')
-        today_datetime = datetime.date.today()
-        today_title = "test {:%b, %d %Y}".format(today_datetime)
-        post_content = "This test post was created on {:%b, %d %Y}".format(today_datetime)
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + credentials
+        response = self.client.post(reverse('api:knox_logout'), data=data, format='json')
+        self.assertEqual(response.status_code, 204, str(body))
 
+class PostViewTests(TestCase):
+    def setUp(self):
+        # register
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+        self.assertEqual(response.status_code, 200)  
+
+        # activate user
+        user = User.objects.get(username='u3')
+        user.is_active = True
+        user.save()
+
+        # login
+        response = self.client.post(reverse('api:login'), data=data, format='json')
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.credentials = body.get('token')
+        # print("line 121: ", str(body))
+
+    def test_make_post(self):
+
+        # make a post 
         data = {
             "permission": 'M',
-            "content": post_content,
-            "title": today_title,
+            "content": 'post_content',
+            "title": 'today_title',
             "images":[],
             "contentType": 'text/plain'
         }
-        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + credentials
-        response2 = self.client.post(reverse('api:auth_posts'), data=data, format='json', content_type='application/json')
-        body = response2.content.decode('utf-8')
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.post(reverse('api:auth_posts'), data=data, format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
         body = json.loads(body)
-        self.assertEqual(response2.status_code, 200, str(body))
+        self.assertEqual(response.status_code, 200, str(body))
+
+    def test_get_public_posts(self):
+
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.get(reverse('api:posts'), format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+
+class ExistingPostViewTests(TestCase):
+    def setUp(self):
+        # register
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+        self.assertEqual(response.status_code, 200)  
+
+        # activate user
+        user = User.objects.get(username='u3')
+        user.is_active = True
+        user.save()
+
+        # login
+        response = self.client.post(reverse('api:login'), data=data, format='json')
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.credentials = body.get('token')
+        
+        # make a post
+        data = {
+            "permission": 'P',
+            "content": 'post_content',
+            "title": 'today_title',
+            "images":[],
+            "contentType": 'text/plain'
+        }
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.post(reverse('api:auth_posts'), data=data, format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+
+        # get a post form public posts
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.get(reverse('api:posts'), format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+        self.postid = body['posts'][0]['postid']
 
 
+    def test_get_specific_posts(self):
+
+        # get post using id
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.get(reverse('api:post_info', args=[self.postid]), format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+
+    def test_get_post_comment(self):
+        data = {
+            "comment": "this is comment",
+            "contentType": "text/plain",
+            "authorid": "this is author id",
+            "postid": self.postid,
+        }
+        # post comment
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.post(reverse('api:post_comments', args=[self.postid]), data=data, format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 201, str(body))
+        self.assertEqual(body['success'], True, str(body))
+
+        #get comment
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'token ' + self.credentials
+        response = self.client.get(reverse('api:post_comments', args=[self.postid]), format='json', content_type='application/json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        self.assertEqual(response.status_code, 200, str(body))
+        self.assertEqual(body['count'], 1, str(body))
 
 class FriendRequestViewTests(APITestCase):
     def setUp(self):
