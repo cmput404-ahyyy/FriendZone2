@@ -867,11 +867,17 @@ def respond_to_friend_request(request):
     if data.get("accepted"):
         requester_id = data.get("from_author")
         requestee_id = data.get("to_author")
+        try:
+            existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
+            requester = Author.objects.get(pk=requester_id)
+            requestee = Author.objects.get(pk=requestee_id)
+        except FriendRequestDoesNotExist:
+            requester = Author.objects.get('from_author')
+            requestee = Author.objects.create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
 
-        existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
         """make them friends"""
-        requester = Author.objects.get(pk=requester_id)
-        requestee = Author.objects.get(pk=requestee_id)
+    
+        
         temp_dict = {"requester" :requestee , "requestee":requester}
         #enroll_following(temp_dict)
         make_them_friends(requester_id, requestee_id, existing_request)
