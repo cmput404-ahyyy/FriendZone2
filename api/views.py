@@ -876,7 +876,7 @@ def respond_to_friend_request(request):
             requestee = Author.objects.get(pk=requestee_id)
         except:
             print("came in except in copy")
-            requester = Author.objects.get(pk=data.get('from_author'))
+            requester = Author.objects.get(url=data.get('from_author'))
             requestee = Author.objects.create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
 
         """make them friends"""
