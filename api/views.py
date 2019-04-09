@@ -675,11 +675,11 @@ class PostComments(APIView):
         if post=="error":
             return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_404_NOT_FOUND)
         found_author,created=Author.objects.get_or_create(author_id=data.get('comment')['author']['id'],hostName=data.get('comment')['author']['host'],username=data.get('comment')['author']['displayName'],url=data.get('comment')['author']['url'])
-        if self.can_comment(post,found_author):
-            comment= Comment.objects.create(comment=data.get('comment')['comment'],author=found_author,published=timezone.now(),postid=post,contentType= data.get('comment')['contentType'])
-            return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
-        else:
-            return Response({"message":"sorry you cannot comment on this post"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        #if self.can_comment(post,found_author):
+        comment= Comment.objects.create(comment=data.get('comment')['comment'],author=found_author,published=timezone.now(),postid=post,contentType= data.get('comment')['contentType'])
+        return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
+        #else:
+            #return Response({"message":"sorry you cannot comment on this post"},status=status.HTTP_405_METHOD_NOT_ALLOWED)
             
 
     def can_comment(self,post,author):
