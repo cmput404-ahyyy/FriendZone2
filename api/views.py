@@ -869,6 +869,8 @@ def respond_to_friend_request(request):
         requestee_id = data.get("to_author")["author_id"]
         try:
             print("came in try in copy")
+            sys.stderr(requester_id)
+            sys.stderr("In line 873")
             existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
             requester = Author.objects.get(pk=requester_id)
             requestee = Author.objects.get(pk=requestee_id)
