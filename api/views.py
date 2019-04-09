@@ -698,6 +698,7 @@ class PostComments(APIView):
 
 
 @api_view(['POST'])
+# @permission_classes((IsAuthenticated, ))
 def send_friend_request(request):
     send_to_remote = False
     if request.method != 'POST':
@@ -839,6 +840,7 @@ def friend_request_to_remote(author_obj, friend_obj):
     return r
 
 @api_view(['POST'])
+# @permission_classes((IsAuthenticated, ))
 def respond_to_friend_request(request):
     """ modify friend request entry values (accept and reject)"""
     if request.method != 'POST':
@@ -894,6 +896,7 @@ def respond_to_friend_request(request):
     """ TODO user would get notification about requests are not rejected"""
 
 @api_view(['POST'])
+# @permission_classes((IsAuthenticated, ))
 def unfriend(request):
     if request.method != 'POST':
         # invalid method
@@ -917,6 +920,7 @@ def unfriend(request):
 
 
 @api_view(['GET'])
+# @permission_classes((IsAuthenticated, ))
 def get_friends(request,authorid):
     current_user_id = authorid;
 
@@ -942,6 +946,7 @@ def get_friends(request,authorid):
     return Response({"query":"Friends","authors":friends_list},status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+# @permission_classes((IsAuthenticated, ))
 def check_friendship(request, authorid, authorid2):
     try:
         user1 = Author.objects.get(pk=authorid)
@@ -958,6 +963,7 @@ def check_friendship(request, authorid, authorid2):
     return Response({"query":"Friends","authors":friends_list, "friends": friends},status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+# @permission_classes((IsAuthenticated, ))
 def get_friends_local(request):
     pass
 
@@ -1042,6 +1048,7 @@ def friend_request_to_remote(dict_data):
     return r
 
 @api_view(['POST'])
+# @permission_classes((IsAuthenticated, ))
 def remote_friendRequest(request):
     data=JSONParser().parse(request)
     host_url=data['friend']['host']+'/api'
@@ -1065,6 +1072,7 @@ def remote_friendRequest(request):
     return Response({'query':'send remote','message':"unsuccesful there was an error"},status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
+# @permission_classes((IsAuthenticated, ))
 def remote_authors(request):
     nodes=Node.objects.all()
     authors=[]
