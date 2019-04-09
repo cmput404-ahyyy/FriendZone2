@@ -871,9 +871,9 @@ def respond_to_friend_request(request):
         requestee_id = data.get("to_author")['author_id']
         try:
             print("came in try in copy")
-            existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
-            requester = Author.objects.get(pk=requester_id)
-            requestee = Author.objects.get(pk=requestee_id)
+            requester = Author.objects.get(url=data.get('from_author'))
+            requestee = Author.objects.get_or_create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
+            existing_request = FriendRequest.objects.get(to_author=requestee, from_author=requester)
             make_them_friends(requester_id, requestee_id, existing_request)
         except:
             print("came in except in copy")
