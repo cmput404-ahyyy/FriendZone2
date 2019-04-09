@@ -874,13 +874,13 @@ def respond_to_friend_request(request):
         try:
             print("came in try in copy")
             requester = Author.objects.get(url=data.get('from_author'))
-            requestee = Author.objects.get_or_create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
+            requestee,created = Author.objects.get_or_create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
             existing_request = FriendRequest.objects.get(to_author=requestee, from_author=requester)
             make_them_friends(requester, requestee, existing_request)
         except:
             print("came in except in copy")
             requester = Author.objects.get(url=data.get('from_author'))
-            requestee = Author.objects.get_or_create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
+            requestee,created = Author.objects.get_or_create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
             temp_dict = {"to_author" :requestee , "from_author":requester}
             serializer = FriendsSerializer(data=temp_dict)
             serializer.create(temp_dict)
