@@ -439,7 +439,7 @@ class PostOfAuth(APIView):
                 filterposts.update(page)
         # getting all post of friends with authenticated user
         for friend in myfriends:
-            posts=Post.objects.filter(Q(author=friend)).order_by('publicationDate')
+            posts=Post.objects.filter(Q(author=friend) & Q(permission='F')).order_by('publicationDate')
             if posts:
                 page = self.paginator.paginate_queryset(posts,request)
                 filterposts.update(page)
