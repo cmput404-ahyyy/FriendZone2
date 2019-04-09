@@ -868,10 +868,12 @@ def respond_to_friend_request(request):
         requester_id = data.get("from_author")
         requestee_id = data.get("to_author")["author_id"]
         try:
+            print("came in try in copy")
             existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
             requester = Author.objects.get(pk=requester_id)
             requestee = Author.objects.get(pk=requestee_id)
         except:
+            print("came in except in copy")
             requester = Author.objects.get('from_author')
             requestee = Author.objects.create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
 
