@@ -869,8 +869,8 @@ def respond_to_friend_request(request):
         print(response)
 
     if data.get("accepted"):
-        requester_id = data.get("from_author")
-        requestee_id = data.get("to_author")['author_id']
+       # requester_id = data.get("from_author")
+       # requestee_id = data.get("to_author")['author_id']
         try:
             print("came in try in copy")
             requester = Author.objects.get(url=data.get('from_author'))
