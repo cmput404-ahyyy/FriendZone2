@@ -840,7 +840,6 @@ def friend_request_to_remote(author_obj, friend_obj):
     return r
 
 @api_view(['POST'])
-# @permission_classes((IsAuthenticated, ))
 def respond_to_friend_request(request):
     """ modify friend request entry values (accept and reject)"""
     if request.method != 'POST':
@@ -853,46 +852,18 @@ def respond_to_friend_request(request):
     except FriendRequest.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-
-    print("line 855")
-    print(data)
-
-
-
-    if data.get("remote")==True:
-        node=Node.objects.get(node_url=data.get('host')+'/api')
-        login_data={"username":node.username,'password':node.password}
-        resp=requests.post(node.node_url+'/auth/login',data=json.dumps(login_data),headers={"Content-Type":"application/json"})
-        token=resp.json()['token']
-        friend_result={"remote":False,"from_author":data.get('from_author'),"to_author":data.get('to_author'),"accepted":data.get('accepted'),"regected":data.get('regected'),'host':data.get('host')}
-        response=requests.post(node.node_url+'/friendResult/',data=json.dumps(friend_result),headers={"Authorization":'Token '+ token,"Content-Type":"application/json"})
-        print(response)
-
     if data.get("accepted"):
-       # requester_id = data.get("from_author")
-       # requestee_id = data.get("to_author")['author_id']
-        try:
-            print("came in try in copy")
-            requester = Author.objects.get(url=data.get('from_author'))
-            requestee,created = Author.objects.get_or_create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
-            print(requester)
-            print(requestee)
-            existing_request = FriendRequest.objects.get(to_author=requestee, from_author=requester)
-            make_them_friends(requester, requestee, existing_request)
-            print(requester)
-            print(requestee)
-            print("after make")
-        except:
-            print("came in except in copy")
-            requester = Author.objects.get(url=data.get('from_author'))
-            requestee,created = Author.objects.get_or_create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
-            print(requester)
-            print(requestee)
-            
-            temp_dict = {"to_author" :requestee , "from_author":requester}
-            serializer = FriendsSerializer(data=temp_dict)
-            serializer.create(temp_dict)
+        requester_id = data.get("from_author")
+        requestee_id = data.get("to_author")
 
+        existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
+        """make them friends"""
+        requester = Author.objects.get(pk=requester_id)
+        requestee = Author.objects.get(pk=requestee_id)
+        temp_dict = {"requester" :requestee , "requestee":requester}
+        #enroll_following(temp_dict)
+        make_them_friends(requester_id, requestee_id, existing_request)
+        print("came asfasdfsa")
         return Response(status=status.HTTP_200_OK)
 
     temp_dict = {"from_author" :data.get("from_author") , "to_author":data.get("to_author"), "accepted":data.get("accepted") , "regected":data.get("regected")}
@@ -902,7 +873,7 @@ def respond_to_friend_request(request):
             serializer.update(q,temp_dict)
         return Response(status=status.HTTP_200_OK)
     """ TODO user would get notification about requests are not rejected"""
-
+    
 @api_view(['POST'])
 # @permission_classes((IsAuthenticated, ))
 def unfriend(request):
