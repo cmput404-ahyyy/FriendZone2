@@ -960,6 +960,7 @@ def make_them_friends(author_one, author_two, existing_request):
     temp_dict = {"from_author" :existing_request.from_author , "to_author":existing_request.to_author}
     # create instance of Friends
     serializer = FriendsSerializer(data=temp_dict)
+    serializer=serializer.create(temp_dict)
     #existing_request.delete()
     temp_dict2 = {"from_author" :existing_request.from_author , "to_author":existing_request.to_author,"accepted" :existing_request.accepted , "regected":existing_request.regected}
 
