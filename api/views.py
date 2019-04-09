@@ -877,9 +877,7 @@ def respond_to_friend_request(request):
             print("came in except in copy")
             requester = Author.objects.get(url=data.get('from_author'))
             requestee = Author.objects.create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
-            print(requester)
-            print(requestee)
-            temp_dict = {"requester" :requestee , "requestee":requester}
+            temp_dict = {"to_author" :requestee , "from_author":requester}
             serializer = FriendsSerializer(data=temp_dict)
             serializer.create(temp_dict)
         """make them friends"""
