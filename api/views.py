@@ -856,6 +856,8 @@ def respond_to_friend_request(request):
         requester_id = data.get("from_author")
         requestee_id = data.get("to_author")
 
+        print("Im here")
+
         existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
         """make them friends"""
         requester = Author.objects.get(pk=requester_id)
@@ -865,7 +867,7 @@ def respond_to_friend_request(request):
         make_them_friends(requester_id, requestee_id, existing_request)
         print("came asfasdfsa")
         return Response(status=status.HTTP_200_OK)
-
+    print("Im after")
     temp_dict = {"from_author" :data.get("from_author") , "to_author":data.get("to_author"), "accepted":data.get("accepted") , "regected":data.get("regected")}
     serializer = FriendRequestSerializer(FriendRequest,data=temp_dict)
     if serializer.is_valid():
@@ -873,7 +875,7 @@ def respond_to_friend_request(request):
             serializer.update(q,temp_dict)
         return Response(status=status.HTTP_200_OK)
     """ TODO user would get notification about requests are not rejected"""
-    
+
 @api_view(['POST'])
 # @permission_classes((IsAuthenticated, ))
 def unfriend(request):
