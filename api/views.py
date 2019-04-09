@@ -872,17 +872,20 @@ def respond_to_friend_request(request):
             existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
             requester = Author.objects.get(pk=requester_id)
             requestee = Author.objects.get(pk=requestee_id)
+            make_them_friends(requester_id, requestee_id, existing_request)
         except:
             print("came in except in copy")
             requester = Author.objects.get(url=data.get('from_author'))
             requestee = Author.objects.create(url=data.get('to_author')['url'],username=data.get('to_author')['username'],hostName=data.get('to_author')['hostName'])
-
+            temp_dict = {"requester" :requestee , "requestee":requester}
+            serializer = FriendsSerializer(data=temp_dict)
+            serializer.create(temp_dict)
         """make them friends"""
     
         
         temp_dict = {"requester" :requestee , "requestee":requester}
         #enroll_following(temp_dict)
-        make_them_friends(requester_id, requestee_id, existing_request)
+        
         print("came asfasdfsa")
         return Response(status=status.HTTP_200_OK)
 
